@@ -1,7 +1,10 @@
 package com.alexandria.app.update
 
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
+import android.os.Build
 import android.util.Log
 import androidx.core.content.FileProvider
 import kotlinx.coroutines.Dispatchers
@@ -88,7 +91,6 @@ object UpdateChecker {
     }
 
     private fun extractVersionCode(tagName: String): Int? {
-        // Tag format: v1.0.0+3 (version name + version code)
         val plusIndex = tagName.lastIndexOf('+')
         return if (plusIndex > 0) {
             tagName.substring(plusIndex + 1).toIntOrNull()
@@ -168,9 +170,20 @@ object UpdateChecker {
             apkFile
         )
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if (!context.packageManager.canRequestPackageInstalls()) {
+                val intent = Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                }
+                context.startActivity(intent)
+                return
+            }
+        }
+
         val intent = Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(uri, "application/vnd.android.package-archive")
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
 
