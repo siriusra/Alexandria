@@ -1,24 +1,33 @@
 package com.alexandria.app.ui.screens.settings
 
+import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.alexandria.app.BuildConfig
 import com.alexandria.app.domain.model.Book
 import com.alexandria.app.domain.model.ReadingStatus
 import com.alexandria.app.data.repository.BookRepository
+import com.alexandria.app.update.UpdateChecker
+import com.alexandria.app.update.UpdateInfo
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import java.io.File
 import java.io.BufferedReader
+import java.io.File
 import java.io.InputStreamReader
 import javax.inject.Inject
 
 data class SettingsUiState(
     val isDarkTheme: Boolean = false,
-    val exportMessage: String? = null
+    val exportMessage: String? = null,
+    val updateInfo: UpdateInfo? = null,
+    val isCheckingUpdate: Boolean = false,
+    val isDownloading: Boolean = false,
+    val downloadProgress: Float = 0f,
+    val updateError: String? = null
 )
 
 @HiltViewModel
@@ -32,6 +41,64 @@ class SettingsViewModel @Inject constructor(
     fun toggleTheme() {
         _uiState.value = _uiState.value.copy(
             isDarkTheme = !_uiState.value.isDarkTheme
+        )
+    }
+
+    fun checkForUpdate() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isCheckingUpdate = true,
+                updateError = null,
+                updateInfo = null
+            )
+
+            val updateInfo = UpdateChecker.checkForUpdate(BuildConfig.VERSION_CODE)
+
+            _uiState.value = _uiState.value.copy(
+                isCheckingUpdate = false,
+                updateInfo = updateInfo,
+                updateError = if (updateInfo == null) null else null
+            )
+
+            if (updateInfo == null) {
+                _uiState.value = _uiState.value.copy(
+                    updateError = "No hay actualizaciones disponibles"
+                )
+            }
+        }
+    }
+
+    fun downloadAndInstall(context: Context) {
+        val updateInfo = _uiState.value.updateInfo ?: return
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isDownloading = true,
+                downloadProgress = 0f,
+                updateError = null
+            )
+
+            val success = UpdateChecker.downloadAndInstall(
+                context = context,
+                downloadUrl = updateInfo.downloadUrl
+            ) { progress ->
+                _uiState.value = _uiState.value.copy(downloadProgress = progress)
+            }
+
+            _uiState.value = _uiState.value.copy(isDownloading = false)
+
+            if (!success) {
+                _uiState.value = _uiState.value.copy(
+                    updateError = "Error al descargar la actualización"
+                )
+            }
+        }
+    }
+
+    fun dismissUpdate() {
+        _uiState.value = _uiState.value.copy(
+            updateInfo = null,
+            updateError = null
         )
     }
 
@@ -90,7 +157,7 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun importFromJson(uri: Uri, context: android.content.Context) {
+    fun importFromJson(uri: Uri, context: Context) {
         viewModelScope.launch {
             try {
                 val inputStream = context.contentResolver.openInputStream(uri)
@@ -121,7 +188,7 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun importFromCsv(uri: Uri, context: android.content.Context) {
+    fun importFromCsv(uri: Uri, context: Context) {
         viewModelScope.launch {
             try {
                 val inputStream = context.contentResolver.openInputStream(uri)
