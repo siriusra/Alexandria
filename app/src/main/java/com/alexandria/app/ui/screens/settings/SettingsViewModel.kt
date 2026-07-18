@@ -136,27 +136,27 @@ class SettingsViewModel @Inject constructor(
                 var importedCount = 0
                 for (i in 1 until lines.size) {
                     val line = lines[i]
-                    if (line.isBlank()) continue
+                    if (line.isNotBlank()) {
+                        val fields = parseCsvLine(line)
+                        if (fields.size >= 11 && fields[0].isNotBlank() && fields[1].isNotBlank()) {
+                            val book = Book(
+                                title = fields[0],
+                                author = fields[1],
+                                genre = fields[2].ifBlank { "Sin género" },
+                                seriesName = fields[3].ifBlank { null },
+                                seriesOrder = fields[4].toIntOrNull(),
+                                year = fields[5].toIntOrNull(),
+                                status = ReadingStatus.fromString(fields[6]),
+                                rating = fields[7].toFloatOrNull(),
+                                pageCount = fields[8].toIntOrNull(),
+                                isbn = fields[9].ifBlank { null },
+                                dateAdded = fields[10].toLongOrNull() ?: System.currentTimeMillis()
+                            )
 
-                    val fields = parseCsvLine(line)
-                    if (fields.size < 11) continue
-
-                    val book = Book(
-                        title = fields[0].ifBlank { continue },
-                        author = fields[1].ifBlank { continue },
-                        genre = fields[2].ifBlank { "Sin género" },
-                        seriesName = fields[3].ifBlank { null },
-                        seriesOrder = fields[4].toIntOrNull(),
-                        year = fields[5].toIntOrNull(),
-                        status = ReadingStatus.fromString(fields[6]),
-                        rating = fields[7].toFloatOrNull(),
-                        pageCount = fields[8].toIntOrNull(),
-                        isbn = fields[9].ifBlank { null },
-                        dateAdded = fields[10].toLongOrNull() ?: System.currentTimeMillis()
-                    )
-
-                    repository.addBook(book)
-                    importedCount++
+                            repository.addBook(book)
+                            importedCount++
+                        }
+                    }
                 }
 
                 _uiState.value = _uiState.value.copy(
