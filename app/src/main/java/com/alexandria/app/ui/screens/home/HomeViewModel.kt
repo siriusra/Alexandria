@@ -7,6 +7,7 @@ import com.alexandria.app.domain.model.ReadingStatus
 import com.alexandria.app.data.repository.BookRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class HomeUiState(
