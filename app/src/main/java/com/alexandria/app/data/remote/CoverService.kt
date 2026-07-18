@@ -17,7 +17,7 @@ class CoverService @Inject constructor() {
         .build()
 
     private val retrofit = Retrofit.Builder()
-        .baseUrl("https://www.googleapis.com/books/api/")
+        .baseUrl("https://www.googleapis.com/books/v1/")
         .client(okHttpClient)
         .addConverterFactory(GsonConverterFactory.create())
         .build()

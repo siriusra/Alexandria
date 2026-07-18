@@ -126,7 +126,8 @@ fun CoverPicker(
 
                     Button(
                         onClick = { onSearch(searchQuery) },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = searchQuery.isNotBlank() && !isSearching
                     ) {
                         Text("Buscar")
                     }
@@ -168,6 +169,19 @@ fun CoverPicker(
                                     )
                                 }
                             }
+                        }
+                    } else if (!isSearching && searchQuery.isNotBlank()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(100.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "No se encontraron portadas",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
