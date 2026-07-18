@@ -1,5 +1,6 @@
 package com.alexandria.app.ui.screens.library
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.alexandria.app.domain.model.Book
@@ -38,6 +39,8 @@ class LibraryViewModel @Inject constructor(
     private val _selectedGenre = MutableStateFlow<String?>(null)
     private val _sortBy = MutableStateFlow(SortOption.DATE_ADDED)
 
+    private var cachedBooks: List<Book> = emptyList()
+
     init {
         loadData()
     }
@@ -45,60 +48,64 @@ class LibraryViewModel @Inject constructor(
     private fun loadData() {
         viewModelScope.launch {
             repository.getAllBooks().collect { books ->
-                updateState(books)
+                cachedBooks = books
+                rebuildUiState()
             }
         }
 
         viewModelScope.launch {
-            _isGridView.collect { updateState() }
+            _sortBy.collect { rebuildUiState() }
         }
 
         viewModelScope.launch {
-            _selectedStatus.collect { updateState() }
+            _selectedStatus.collect { rebuildUiState() }
         }
 
         viewModelScope.launch {
-            _selectedGenre.collect { updateState() }
+            _selectedGenre.collect { rebuildUiState() }
         }
 
         viewModelScope.launch {
-            _sortBy.collect { updateState() }
+            _isGridView.collect { rebuildUiState() }
         }
     }
 
-    private var cachedBooks: List<Book> = emptyList()
+    private fun rebuildUiState() {
+        try {
+            val books = cachedBooks
+            val status = _selectedStatus.value
+            val genre = _selectedGenre.value
+            val sort = _sortBy.value
+            val isGrid = _isGridView.value
 
-    private fun updateState(books: List<Book> = cachedBooks) {
-        cachedBooks = books
-        val status = _selectedStatus.value
-        val genre = _selectedGenre.value
-        val sort = _sortBy.value
-        val isGrid = _isGridView.value
+            var result: List<Book> = ArrayList(books)
 
-        var filtered = books
+            if (status != null) {
+                result = result.filter { it.status == status }
+            }
 
-        status?.let { s ->
-            filtered = filtered.filter { it.status == s }
+            if (genre != null) {
+                result = result.filter { it.genre == genre }
+            }
+
+            result = when (sort) {
+                SortOption.DATE_ADDED -> result.sortedByDescending { it.dateAdded }
+                SortOption.TITLE -> result.sortedBy { it.title.lowercase() }
+                SortOption.AUTHOR -> result.sortedBy { it.author.lowercase() }
+                SortOption.RATING -> result.sortedByDescending { it.rating ?: 0f }
+            }
+
+            _uiState.value = LibraryUiState(
+                books = result,
+                isGridView = isGrid,
+                selectedStatus = status,
+                selectedGenre = genre,
+                sortBy = sort
+            )
+        } catch (e: Exception) {
+            Log.e("LibraryViewModel", "Error rebuilding UI state", e)
+            _uiState.value = LibraryUiState()
         }
-
-        genre?.let { g ->
-            filtered = filtered.filter { it.genre == g }
-        }
-
-        filtered = when (sort) {
-            SortOption.DATE_ADDED -> filtered.sortedByDescending { it.dateAdded }
-            SortOption.TITLE -> filtered.sortedBy { it.title.lowercase() }
-            SortOption.AUTHOR -> filtered.sortedBy { it.author.lowercase() }
-            SortOption.RATING -> filtered.sortedByDescending { it.rating ?: 0f }
-        }
-
-        _uiState.value = LibraryUiState(
-            books = filtered,
-            isGridView = isGrid,
-            selectedStatus = status,
-            selectedGenre = genre,
-            sortBy = sort
-        )
     }
 
     fun toggleView() {
