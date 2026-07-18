@@ -41,7 +41,8 @@ interface GoogleBooksApi {
     suspend fun searchBooks(
         @Query("q") query: String,
         @Query("maxResults") maxResults: Int = 20,
-        @Query("startIndex") startIndex: Int = 0
+        @Query("startIndex") startIndex: Int = 0,
+        @Query("printType") printType: String = "books"
     ): GoogleBooksResponse
 
     @GET("volumes/{volumeId}")

@@ -83,11 +83,18 @@ class BookRepository @Inject constructor(
         return try {
             when (provider) {
                 CoverProvider.GOOGLE_BOOKS -> {
-                    val response = coverService.googleBooksApi.searchBooks(query)
-                    response.items ?: emptyList()
+                    val trimmedQuery = query.trim()
+                    if (trimmedQuery.isBlank()) return emptyList()
+                    val response = coverService.googleBooksApi.searchBooks(trimmedQuery)
+                    val items = response.items
+                    Log.d("BookRepository", "Google Books: found ${items?.size ?: 0} items for '$trimmedQuery'")
+                    items ?: emptyList()
                 }
                 CoverProvider.OPEN_LIBRARY -> {
-                    val response = coverService.openLibraryApi.searchBooks(query)
+                    val trimmedQuery = query.trim()
+                    if (trimmedQuery.isBlank()) return emptyList()
+                    val response = coverService.openLibraryApi.searchBooks(trimmedQuery)
+                    Log.d("BookRepository", "Open Library: found ${response.docs.size} docs for '$trimmedQuery'")
                     response.docs.mapNotNull { doc ->
                         val coverId = doc.cover_i ?: return@mapNotNull null
                         GoogleBookItem(
