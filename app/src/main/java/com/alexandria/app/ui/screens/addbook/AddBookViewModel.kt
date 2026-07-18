@@ -1,6 +1,7 @@
 package com.alexandria.app.ui.screens.addbook
 
 import android.net.Uri
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.alexandria.app.domain.model.Book
@@ -31,16 +32,48 @@ data class AddBookUiState(
     val coverSearchResults: List<GoogleBookItem> = emptyList(),
     val coverSearchError: String? = null,
     val coverProvider: CoverProvider = CoverProvider.GOOGLE_BOOKS,
-    val savedSuccessfully: Boolean = false
+    val savedSuccessfully: Boolean = false,
+    val isEditing: Boolean = false
 )
 
 @HiltViewModel
 class AddBookViewModel @Inject constructor(
-    private val repository: BookRepository
+    private val repository: BookRepository,
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AddBookUiState())
     val uiState: StateFlow<AddBookUiState> = _uiState.asStateFlow()
+
+    private val editBookId: Long = savedStateHandle["bookId"] ?: 0L
+
+    init {
+        if (editBookId > 0) {
+            _uiState.value = _uiState.value.copy(isEditing = true)
+            loadBook(editBookId)
+        }
+    }
+
+    private fun loadBook(bookId: Long) {
+        viewModelScope.launch {
+            repository.getBookById(bookId).first()?.let { book ->
+                _uiState.value = _uiState.value.copy(
+                    title = book.title,
+                    author = book.author,
+                    genre = book.genre,
+                    seriesName = book.seriesName ?: "",
+                    seriesOrder = book.seriesOrder?.toString() ?: "",
+                    year = book.year?.toString() ?: "",
+                    status = book.status,
+                    coverUrl = book.coverUrl,
+                    rating = book.rating,
+                    notes = book.notes ?: "",
+                    pageCount = book.pageCount?.toString() ?: "",
+                    isbn = book.isbn ?: ""
+                )
+            }
+        }
+    }
 
     fun onTitleChange(value: String) {
         _uiState.value = _uiState.value.copy(title = value)
@@ -129,6 +162,7 @@ class AddBookViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isSaving = true)
 
             val book = Book(
+                id = if (state.isEditing) editBookId else 0L,
                 title = state.title.trim(),
                 author = state.author.trim(),
                 genre = state.genre.trim().ifBlank { "Sin género" },
@@ -143,7 +177,11 @@ class AddBookViewModel @Inject constructor(
                 isbn = state.isbn.trim().ifBlank { null }
             )
 
-            repository.addBook(book)
+            if (state.isEditing) {
+                repository.updateBook(book)
+            } else {
+                repository.addBook(book)
+            }
 
             _uiState.value = _uiState.value.copy(
                 isSaving = false,

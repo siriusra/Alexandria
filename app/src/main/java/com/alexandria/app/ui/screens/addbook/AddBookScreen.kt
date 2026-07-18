@@ -45,7 +45,7 @@ fun AddBookScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Añadir libro") },
+                title = { Text(if (uiState.isEditing) "Editar libro" else "Añadir libro") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Volver")

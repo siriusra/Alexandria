@@ -3,6 +3,7 @@ name: Build Android APK
 on:
   push:
     branches: [ "main" ]
+    tags: [ "v*" ]
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
@@ -39,27 +40,10 @@ jobs:
         path: app/build/outputs/apk/debug/app-debug.apk
         retention-days: 14
 
-    - name: Extract version name
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-      id: version
-      run: |
-        VERSION_NAME=$(grep 'versionName' app/build.gradle.kts | sed 's/.*"\(.*\)".*/\1/')
-        VERSION_CODE=$(grep 'versionCode' app/build.gradle.kts | sed 's/.*= \([0-9]*\).*/\1/')
-        echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
-        echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
-        echo "tag=v${VERSION_NAME}+${VERSION_CODE}" >> $GITHUB_OUTPUT
-
     - name: Create GitHub Release
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      if: startsWith(github.ref, 'refs/tags/v')
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: ${{ steps.version.outputs.tag }}
-        name: Alexandria ${{ steps.version.outputs.tag }}
-        body: |
-          Alexandria ${{ steps.version.outputs.version_name }}
-
-          ## Changelog
-          - Latest build from main branch
         files: app/build/outputs/apk/debug/app-debug.apk
         make_latest: true
       env:
