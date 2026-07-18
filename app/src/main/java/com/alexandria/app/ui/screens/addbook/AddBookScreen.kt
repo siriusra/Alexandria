@@ -76,7 +76,10 @@ fun AddBookScreen(
                 onLocalImageSelected = { viewModel.onCoverUrlChange(it.toString()) },
                 searchResults = uiState.coverSearchResults,
                 isSearching = uiState.isSearchingCover,
-                onSearch = { viewModel.searchCovers(it) }
+                onSearch = { viewModel.searchCovers(it) },
+                coverProvider = uiState.coverProvider,
+                onProviderChange = { viewModel.onCoverProviderChange(it) },
+                errorMessage = uiState.coverSearchError
             )
 
             OutlinedTextField(

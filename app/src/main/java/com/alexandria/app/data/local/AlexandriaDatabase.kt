@@ -21,7 +21,7 @@ abstract class AlexandriaDatabase : RoomDatabase() {
                     context.applicationContext,
                     AlexandriaDatabase::class.java,
                     "alexandria_database"
-                ).build()
+                ).fallbackToDestructiveMigration().build()
                 INSTANCE = instance
                 instance
             }

@@ -12,21 +12,33 @@ class CoverService @Inject constructor() {
 
     private val okHttpClient = OkHttpClient.Builder()
         .addInterceptor(HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BASIC
+            level = HttpLoggingInterceptor.Level.BODY
         })
         .build()
 
-    private val retrofit = Retrofit.Builder()
+    private val googleBooksRetrofit = Retrofit.Builder()
         .baseUrl("https://www.googleapis.com/books/v1/")
         .client(okHttpClient)
         .addConverterFactory(GsonConverterFactory.create())
         .build()
 
-    val googleBooksApi: GoogleBooksApi = retrofit.create(GoogleBooksApi::class.java)
+    private val openLibraryRetrofit = Retrofit.Builder()
+        .baseUrl("https://openlibrary.org/")
+        .client(okHttpClient)
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+
+    val googleBooksApi: GoogleBooksApi = googleBooksRetrofit.create(GoogleBooksApi::class.java)
+
+    val openLibraryApi: OpenLibraryApi = openLibraryRetrofit.create(OpenLibraryApi::class.java)
 
     fun getCoverUrl(volumeInfo: VolumeInfo): String? {
         return volumeInfo.imageLinks?.thumbnail
             ?.replace("http://", "https://")
             ?.replace("edge=curl", "edge=curl&fife=w400-h600")
+    }
+
+    fun getOpenLibraryCoverUrl(coverId: Long): String {
+        return "https://covers.openlibrary.org/b/id/$coverId-M.jpg"
     }
 }

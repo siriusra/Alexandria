@@ -1,7 +1,10 @@
 package com.alexandria.app.ui.navigation
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavType
@@ -26,7 +29,7 @@ fun MainNavGraph() {
 
     val showBottomBar = currentRoute in bottomNavItems.map { it.route }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.systemBars)) {
         NavHost(
             navController = navController,
             startDestination = Screen.Home.route,

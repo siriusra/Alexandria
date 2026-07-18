@@ -1,6 +1,8 @@
 package com.alexandria.app.ui.screens.settings
 
 import android.os.Environment
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -23,8 +25,21 @@ fun SettingsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var showExportDialog by remember { mutableStateOf(false) }
+    var showImportDialog by remember { mutableStateOf(false) }
 
     val snackbarHostState = remember { SnackbarHostState() }
+
+    val jsonImportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        uri?.let { viewModel.importFromJson(it, context) }
+    }
+
+    val csvImportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        uri?.let { viewModel.importFromCsv(it, context) }
+    }
 
     LaunchedEffect(uiState.exportMessage) {
         uiState.exportMessage?.let { message ->
@@ -101,6 +116,21 @@ fun SettingsScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Exportar biblioteca")
                     }
+
+                    HorizontalDivider()
+
+                    TextButton(
+                        onClick = { showImportDialog = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.FileUpload,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Importar biblioteca")
+                    }
                 }
             }
 
@@ -173,6 +203,47 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showExportDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
+    if (showImportDialog) {
+        AlertDialog(
+            onDismissRequest = { showImportDialog = false },
+            title = { Text("Importar biblioteca") },
+            text = {
+                Column {
+                    Text("Selecciona el archivo a importar:")
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    OutlinedButton(
+                        onClick = {
+                            jsonImportLauncher.launch(arrayOf("application/json", "text/plain"))
+                            showImportDialog = false
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("JSON (desde Alexandria)")
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedButton(
+                        onClick = {
+                            csvImportLauncher.launch(arrayOf("text/csv", "text/comma-separated-values", "text/plain"))
+                            showImportDialog = false
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("CSV (desde Excel/Sheets)")
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showImportDialog = false }) {
                     Text("Cancelar")
                 }
             }

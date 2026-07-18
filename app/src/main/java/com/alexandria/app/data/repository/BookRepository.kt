@@ -1,11 +1,14 @@
 package com.alexandria.app.data.repository
 
+import android.util.Log
 import com.alexandria.app.data.local.BookDao
 import com.alexandria.app.data.local.entity.BookEntity
 import com.alexandria.app.data.remote.CoverService
 import com.alexandria.app.data.remote.GoogleBookItem
 import com.alexandria.app.domain.model.Book
+import com.alexandria.app.domain.model.CoverProvider
 import com.alexandria.app.domain.model.ReadingStatus
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -76,11 +79,47 @@ class BookRepository @Inject constructor(
         bookDao.deleteBookById(bookId)
     }
 
-    suspend fun searchCovers(query: String): List<GoogleBookItem> {
+    suspend fun searchCovers(query: String, provider: CoverProvider): List<GoogleBookItem> {
         return try {
-            val response = coverService.googleBooksApi.searchBooks(query)
-            response.items ?: emptyList()
+            when (provider) {
+                CoverProvider.GOOGLE_BOOKS -> {
+                    val response = coverService.googleBooksApi.searchBooks(query)
+                    response.items ?: emptyList()
+                }
+                CoverProvider.OPEN_LIBRARY -> {
+                    val response = coverService.openLibraryApi.searchBooks(query)
+                    response.docs.mapNotNull { doc ->
+                        val coverId = doc.cover_i ?: return@mapNotNull null
+                        GoogleBookItem(
+                            id = doc.key ?: "",
+                            volumeInfo = com.alexandria.app.data.remote.VolumeInfo(
+                                title = doc.title,
+                                authors = doc.author_name,
+                                publishedDate = doc.first_publish_year?.toString(),
+                                description = null,
+                                pageCount = null,
+                                imageLinks = com.alexandria.app.data.remote.ImageLinks(
+                                    smallThumbnail = coverService.getOpenLibraryCoverUrl(coverId),
+                                    thumbnail = coverService.getOpenLibraryCoverUrl(coverId)
+                                ),
+                                categories = null,
+                                industryIdentifiers = doc.isbn?.firstOrNull()?.let { isbn ->
+                                    listOf(
+                                        com.alexandria.app.data.remote.IndustryIdentifier(
+                                            type = "ISBN_13",
+                                            identifier = isbn
+                                        )
+                                    )
+                                }
+                            )
+                        )
+                    }
+                }
+            }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
+            Log.e("BookRepository", "Error searching covers for: $query with provider: $provider", e)
             emptyList()
         }
     }

@@ -19,6 +19,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.alexandria.app.data.remote.GoogleBookItem
+import com.alexandria.app.domain.model.CoverProvider
 
 @Composable
 fun CoverPicker(
@@ -28,11 +29,13 @@ fun CoverPicker(
     searchResults: List<GoogleBookItem>,
     isSearching: Boolean,
     onSearch: (String) -> Unit,
+    coverProvider: CoverProvider,
+    onProviderChange: (CoverProvider) -> Unit,
+    errorMessage: String? = null,
     modifier: Modifier = Modifier
 ) {
     var showSearchDialog by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
-    var selectedTab by remember { mutableIntStateOf(0) }
 
     val context = LocalContext.current
     val galleryLauncher = rememberLauncherForActivityResult(
@@ -114,6 +117,21 @@ fun CoverPicker(
             title = { Text("Buscar portada") },
             text = {
                 Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        CoverProvider.entries.forEach { provider ->
+                            FilterChip(
+                                selected = coverProvider == provider,
+                                onClick = { onProviderChange(provider) },
+                                label = { Text(provider.displayName) }
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
@@ -135,6 +153,15 @@ fun CoverPicker(
                     if (isSearching) {
                         CircularProgressIndicator(
                             modifier = Modifier.padding(16.dp)
+                        )
+                    }
+
+                    if (errorMessage != null && !isSearching) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = errorMessage,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error
                         )
                     }
 
@@ -169,19 +196,6 @@ fun CoverPicker(
                                     )
                                 }
                             }
-                        }
-                    } else if (!isSearching && searchQuery.isNotBlank()) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(100.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "No se encontraron portadas",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
                         }
                     }
                 }

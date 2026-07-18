@@ -1,14 +1,19 @@
 package com.alexandria.app.ui.screens.settings
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.alexandria.app.domain.model.Book
 import com.alexandria.app.domain.model.ReadingStatus
 import com.alexandria.app.data.repository.BookRepository
 import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.io.File
+import java.io.BufferedReader
+import java.io.InputStreamReader
 import javax.inject.Inject
 
 data class SettingsUiState(
@@ -85,6 +90,86 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun importFromJson(uri: Uri, context: android.content.Context) {
+        viewModelScope.launch {
+            try {
+                val inputStream = context.contentResolver.openInputStream(uri)
+                    ?: throw Exception("No se pudo abrir el archivo")
+
+                val reader = BufferedReader(InputStreamReader(inputStream))
+                val json = reader.readText()
+                reader.close()
+
+                val type = object : TypeToken<List<Book>>() {}.type
+                val books: List<Book> = Gson().fromJson(json, type)
+
+                var importedCount = 0
+                books.forEach { book ->
+                    val bookWithoutId = book.copy(id = 0)
+                    repository.addBook(bookWithoutId)
+                    importedCount++
+                }
+
+                _uiState.value = _uiState.value.copy(
+                    exportMessage = "Importados $importedCount libros exitosamente"
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    exportMessage = "Error al importar: ${e.message}"
+                )
+            }
+        }
+    }
+
+    fun importFromCsv(uri: Uri, context: android.content.Context) {
+        viewModelScope.launch {
+            try {
+                val inputStream = context.contentResolver.openInputStream(uri)
+                    ?: throw Exception("No se pudo abrir el archivo")
+
+                val reader = BufferedReader(InputStreamReader(inputStream))
+                val lines = reader.readLines()
+                reader.close()
+
+                if (lines.size < 2) throw Exception("El archivo CSV está vacío o no tiene datos")
+
+                var importedCount = 0
+                for (i in 1 until lines.size) {
+                    val line = lines[i]
+                    if (line.isBlank()) continue
+
+                    val fields = parseCsvLine(line)
+                    if (fields.size < 11) continue
+
+                    val book = Book(
+                        title = fields[0].ifBlank { continue },
+                        author = fields[1].ifBlank { continue },
+                        genre = fields[2].ifBlank { "Sin género" },
+                        seriesName = fields[3].ifBlank { null },
+                        seriesOrder = fields[4].toIntOrNull(),
+                        year = fields[5].toIntOrNull(),
+                        status = ReadingStatus.fromString(fields[6]),
+                        rating = fields[7].toFloatOrNull(),
+                        pageCount = fields[8].toIntOrNull(),
+                        isbn = fields[9].ifBlank { null },
+                        dateAdded = fields[10].toLongOrNull() ?: System.currentTimeMillis()
+                    )
+
+                    repository.addBook(book)
+                    importedCount++
+                }
+
+                _uiState.value = _uiState.value.copy(
+                    exportMessage = "Importados $importedCount libros exitosamente"
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    exportMessage = "Error al importar: ${e.message}"
+                )
+            }
+        }
+    }
+
     fun clearMessage() {
         _uiState.value = _uiState.value.copy(exportMessage = null)
     }
@@ -95,5 +180,24 @@ class SettingsViewModel @Inject constructor(
         } else {
             this
         }
+    }
+
+    private fun parseCsvLine(line: String): List<String> {
+        val result = mutableListOf<String>()
+        var current = StringBuilder()
+        var inQuotes = false
+
+        for (char in line) {
+            when {
+                char == '"' -> inQuotes = !inQuotes
+                char == ',' && !inQuotes -> {
+                    result.add(current.toString())
+                    current = StringBuilder()
+                }
+                else -> current.append(char)
+            }
+        }
+        result.add(current.toString())
+        return result
     }
 }
