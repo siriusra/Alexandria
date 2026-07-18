@@ -1,0 +1,323 @@
+﻿2026-07-18T17:37:06.3493073Z Current runner version: '2.335.1'
+2026-07-18T17:37:06.3531742Z ##[group]Runner Image Provisioner
+2026-07-18T17:37:06.3533628Z Hosted Compute Agent
+2026-07-18T17:37:06.3534621Z Version: 20260707.563
+2026-07-18T17:37:06.3535964Z Commit: 02667638d2b423fbc733a8e32a88b44996a3ba6e
+2026-07-18T17:37:06.3537604Z Build Date: 2026-07-07T19:33:50Z
+2026-07-18T17:37:06.3538863Z Worker ID: {d4c80be9-b4c1-4d1a-b56e-f37599532af0}
+2026-07-18T17:37:06.3540251Z Azure Region: westus2
+2026-07-18T17:37:06.3541279Z ##[endgroup]
+2026-07-18T17:37:06.3543907Z ##[group]Operating System
+2026-07-18T17:37:06.3544936Z Ubuntu
+2026-07-18T17:37:06.3545753Z 24.04.4
+2026-07-18T17:37:06.3547027Z LTS
+2026-07-18T17:37:06.3547858Z ##[endgroup]
+2026-07-18T17:37:06.3548825Z ##[group]Runner Image
+2026-07-18T17:37:06.3549972Z Image: ubuntu-24.04
+2026-07-18T17:37:06.3550869Z Version: 20260714.240.1
+2026-07-18T17:37:06.3553048Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260714.240/images/ubuntu/Ubuntu2404-Readme.md
+2026-07-18T17:37:06.3555785Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260714.240
+2026-07-18T17:37:06.3557803Z ##[endgroup]
+2026-07-18T17:37:06.3559760Z ##[group]GITHUB_TOKEN Permissions
+2026-07-18T17:37:06.3562992Z Contents: read
+2026-07-18T17:37:06.3564087Z Metadata: read
+2026-07-18T17:37:06.3565220Z Packages: read
+2026-07-18T17:37:06.3566510Z ##[endgroup]
+2026-07-18T17:37:06.3569635Z Secret source: Actions
+2026-07-18T17:37:06.3571981Z Prepare workflow directory
+2026-07-18T17:37:06.4234109Z Prepare all required actions
+2026-07-18T17:37:06.4295305Z Getting action download info
+2026-07-18T17:37:06.8487140Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+2026-07-18T17:37:07.0106003Z Download action repository 'actions/setup-java@v4' (SHA:c1e323688fd81a25caa38c78aa6df2d33d3e20d9)
+2026-07-18T17:37:07.3389754Z Download action repository 'gradle/actions@v3' (SHA:d9c87d481d55275bb5441eef3fe0e46805f9ef70)
+2026-07-18T17:37:08.0528992Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-07-18T17:37:08.3456009Z Complete job name: build
+2026-07-18T17:37:08.4363164Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-07-18T17:37:08.4374729Z ##[group]Run actions/checkout@v4
+2026-07-18T17:37:08.4376038Z with:
+2026-07-18T17:37:08.4377126Z   repository: siriusra/Alexandria
+2026-07-18T17:37:08.4386977Z   token: ***
+2026-07-18T17:37:08.4387846Z   ssh-strict: true
+2026-07-18T17:37:08.4388715Z   ssh-user: git
+2026-07-18T17:37:08.4389605Z   persist-credentials: true
+2026-07-18T17:37:08.4390575Z   clean: true
+2026-07-18T17:37:08.4391467Z   sparse-checkout-cone-mode: true
+2026-07-18T17:37:08.4392520Z   fetch-depth: 1
+2026-07-18T17:37:08.4393408Z   fetch-tags: false
+2026-07-18T17:37:08.4394311Z   show-progress: true
+2026-07-18T17:37:08.4395209Z   lfs: false
+2026-07-18T17:37:08.4396072Z   submodules: false
+2026-07-18T17:37:08.4397410Z   set-safe-directory: true
+2026-07-18T17:37:08.4398878Z ##[endgroup]
+2026-07-18T17:37:08.5698852Z Syncing repository: siriusra/Alexandria
+2026-07-18T17:37:08.5703282Z ##[group]Getting Git version info
+2026-07-18T17:37:08.5705792Z Working directory is '/home/runner/work/Alexandria/Alexandria'
+2026-07-18T17:37:08.5709305Z [command]/usr/bin/git version
+2026-07-18T17:37:08.5717788Z git version 2.54.0
+2026-07-18T17:37:08.5935550Z ##[endgroup]
+2026-07-18T17:37:08.5947279Z Temporarily overriding HOME='/home/runner/work/_temp/f5fd6295-34a8-47f8-80ad-4f67cbc074fb' before making global git config changes
+2026-07-18T17:37:08.5954832Z Adding repository directory to the temporary git global config as a safe directory
+2026-07-18T17:37:08.5962735Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Alexandria/Alexandria
+2026-07-18T17:37:08.6010262Z Deleting the contents of '/home/runner/work/Alexandria/Alexandria'
+2026-07-18T17:37:08.6014437Z ##[group]Initializing the repository
+2026-07-18T17:37:08.6018092Z [command]/usr/bin/git init /home/runner/work/Alexandria/Alexandria
+2026-07-18T17:37:08.6208890Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-07-18T17:37:08.6238513Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-07-18T17:37:08.6250913Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-07-18T17:37:08.6254017Z hint: call:
+2026-07-18T17:37:08.6256054Z hint:
+2026-07-18T17:37:08.6258592Z hint: 	git config --global init.defaultBranch <name>
+2026-07-18T17:37:08.6261424Z hint:
+2026-07-18T17:37:08.6263674Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-07-18T17:37:08.6267914Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-07-18T17:37:08.6270899Z hint:
+2026-07-18T17:37:08.6272971Z hint: 	git branch -m <name>
+2026-07-18T17:37:08.6275022Z hint:
+2026-07-18T17:37:08.6281702Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-07-18T17:37:08.6285986Z Initialized empty Git repository in /home/runner/work/Alexandria/Alexandria/.git/
+2026-07-18T17:37:08.6294433Z [command]/usr/bin/git remote add origin https://github.com/siriusra/Alexandria
+2026-07-18T17:37:08.6352238Z ##[endgroup]
+2026-07-18T17:37:08.6362368Z ##[group]Disabling automatic garbage collection
+2026-07-18T17:37:08.6365460Z [command]/usr/bin/git config --local gc.auto 0
+2026-07-18T17:37:08.6431934Z ##[endgroup]
+2026-07-18T17:37:08.6434764Z ##[group]Setting up auth
+2026-07-18T17:37:08.6441530Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-07-18T17:37:08.6497905Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-07-18T17:37:08.7029281Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-07-18T17:37:08.7065914Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-07-18T17:37:08.7324534Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-07-18T17:37:08.7365220Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-07-18T17:37:08.7624799Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-07-18T17:37:08.7671156Z ##[endgroup]
+2026-07-18T17:37:08.7675032Z ##[group]Fetching the repository
+2026-07-18T17:37:08.7686053Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +ab31a718e54cf142c9d3bc21b81ae72588beeff2:refs/remotes/origin/main
+2026-07-18T17:37:09.0679396Z From https://github.com/siriusra/Alexandria
+2026-07-18T17:37:09.0680892Z  * [new ref]         ab31a718e54cf142c9d3bc21b81ae72588beeff2 -> origin/main
+2026-07-18T17:37:09.0704239Z ##[endgroup]
+2026-07-18T17:37:09.0705542Z ##[group]Determining the checkout info
+2026-07-18T17:37:09.0707157Z ##[endgroup]
+2026-07-18T17:37:09.0713643Z [command]/usr/bin/git sparse-checkout disable
+2026-07-18T17:37:09.0774050Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-07-18T17:37:09.0811588Z ##[group]Checking out the ref
+2026-07-18T17:37:09.0817578Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-07-18T17:37:09.0940340Z Switched to a new branch 'main'
+2026-07-18T17:37:09.0943332Z branch 'main' set up to track 'origin/main'.
+2026-07-18T17:37:09.0952275Z ##[endgroup]
+2026-07-18T17:37:09.1106550Z [command]/usr/bin/git log -1 --format=%H
+2026-07-18T17:37:09.1108212Z ab31a718e54cf142c9d3bc21b81ae72588beeff2
+2026-07-18T17:37:09.1395472Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-07-18T17:37:09.1397615Z ##[group]Run actions/setup-java@v4
+2026-07-18T17:37:09.1397928Z with:
+2026-07-18T17:37:09.1398172Z   java-version: 17
+2026-07-18T17:37:09.1398430Z   distribution: temurin
+2026-07-18T17:37:09.1398700Z   java-package: jdk
+2026-07-18T17:37:09.1398958Z   check-latest: false
+2026-07-18T17:37:09.1399213Z   server-id: github
+2026-07-18T17:37:09.1399482Z   server-username: GITHUB_ACTOR
+2026-07-18T17:37:09.1399790Z   server-password: GITHUB_TOKEN
+2026-07-18T17:37:09.1400091Z   overwrite-settings: true
+2026-07-18T17:37:09.1400374Z   job-status: success
+2026-07-18T17:37:09.1403147Z   token: ***
+2026-07-18T17:37:09.1403408Z ##[endgroup]
+2026-07-18T17:37:09.3325463Z ##[group]Installed distributions
+2026-07-18T17:37:09.3546872Z Resolved Java 17.0.19+10 from tool-cache
+2026-07-18T17:37:09.3548019Z Setting Java 17.0.19+10 as the default
+2026-07-18T17:37:09.3561609Z (node:2084) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-07-18T17:37:09.3563327Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-07-18T17:37:09.3566504Z Creating toolchains.xml for JDK version 17 from temurin
+2026-07-18T17:37:09.3655611Z Writing to /home/runner/.m2/toolchains.xml
+2026-07-18T17:37:09.3657369Z 
+2026-07-18T17:37:09.3658012Z Java configuration:
+2026-07-18T17:37:09.3658939Z   Distribution: temurin
+2026-07-18T17:37:09.3659784Z   Version: 17.0.19+10
+2026-07-18T17:37:09.3660882Z   Path: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.19-10/x64
+2026-07-18T17:37:09.3661820Z 
+2026-07-18T17:37:09.3662823Z ##[endgroup]
+2026-07-18T17:37:09.3695567Z Creating settings.xml with server-id: github
+2026-07-18T17:37:09.3697222Z Writing to /home/runner/.m2/settings.xml
+2026-07-18T17:37:09.4247966Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-07-18T17:37:09.4250422Z ##[group]Run gradle/actions/setup-gradle@v3
+2026-07-18T17:37:09.4251579Z with:
+2026-07-18T17:37:09.4264194Z   cache-disabled: false
+2026-07-18T17:37:09.4264740Z   cache-read-only: false
+2026-07-18T17:37:09.4265257Z   cache-write-only: false
+2026-07-18T17:37:09.4265778Z   cache-overwrite-existing: false
+2026-07-18T17:37:09.4266679Z   gradle-home-cache-includes: caches
+notifications
+
+2026-07-18T17:37:09.4267377Z   gradle-home-cache-cleanup: false
+2026-07-18T17:37:09.4267930Z   add-job-summary: always
+2026-07-18T17:37:09.4268476Z   add-job-summary-as-pr-comment: never
+2026-07-18T17:37:09.4269068Z   dependency-graph: disabled
+2026-07-18T17:37:09.4269627Z   dependency-graph-continue-on-failure: true
+2026-07-18T17:37:09.4270237Z   build-scan-publish: false
+2026-07-18T17:37:09.4270745Z   validate-wrappers: false
+2026-07-18T17:37:09.4271245Z   generate-job-summary: true
+2026-07-18T17:37:09.4271786Z   gradle-home-cache-strict-match: false
+2026-07-18T17:37:09.4272366Z   workflow-job-context: null
+2026-07-18T17:37:09.4287646Z   github-token: ***
+2026-07-18T17:37:09.4288175Z env:
+2026-07-18T17:37:09.4288831Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.19-10/x64
+2026-07-18T17:37:09.4289814Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.19-10/x64
+2026-07-18T17:37:09.4290605Z ##[endgroup]
+2026-07-18T17:37:09.6718653Z (node:2096) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-07-18T17:37:09.6720709Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-07-18T17:37:11.4780403Z Merged default JDK locations into /home/runner/.m2/toolchains.xml
+2026-07-18T17:37:11.4783231Z ##[group]Restore Gradle state from cache
+2026-07-18T17:37:11.5790526Z ##[warning]Failed to restore gradle-home-v1|Linux|build[e080f0fdc288b6f0c5023fd4b86f7a10]-ab31a718e54cf142c9d3bc21b81ae72588beeff2: Error: Cache service responded with 400
+2026-07-18T17:37:11.5844106Z Gradle User Home cache not found. Will initialize empty.
+2026-07-18T17:37:11.5846057Z ##[endgroup]
+2026-07-18T17:37:11.5989235Z ##[group]Run chmod +x gradlew
+2026-07-18T17:37:11.5989585Z [36;1mchmod +x gradlew[0m
+2026-07-18T17:37:11.6070943Z shell: /usr/bin/bash -e {0}
+2026-07-18T17:37:11.6071276Z env:
+2026-07-18T17:37:11.6071620Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.19-10/x64
+2026-07-18T17:37:11.6072187Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.19-10/x64
+2026-07-18T17:37:11.6072664Z   GRADLE_ACTION_ID: gradle/actions/setup-gradle
+2026-07-18T17:37:11.6073034Z   GRADLE_BUILD_ACTION_SETUP_COMPLETED: true
+2026-07-18T17:37:11.6073361Z   GRADLE_BUILD_ACTION_CACHE_RESTORED: true
+2026-07-18T17:37:11.6073880Z   DEVELOCITY_INJECTION_INIT_SCRIPT_NAME: gradle-actions.inject-develocity.init.gradle
+2026-07-18T17:37:11.6074451Z   DEVELOCITY_AUTO_INJECTION_CUSTOM_VALUE: gradle-actions
+2026-07-18T17:37:11.6074826Z   GITHUB_DEPENDENCY_GRAPH_ENABLED: false
+2026-07-18T17:37:11.6075124Z ##[endgroup]
+2026-07-18T17:37:11.6230964Z ##[group]Run ./gradlew assembleDebug
+2026-07-18T17:37:11.6231342Z [36;1m./gradlew assembleDebug[0m
+2026-07-18T17:37:11.6291182Z shell: /usr/bin/bash -e {0}
+2026-07-18T17:37:11.6291498Z env:
+2026-07-18T17:37:11.6291829Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.19-10/x64
+2026-07-18T17:37:11.6292362Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.19-10/x64
+2026-07-18T17:37:11.6292819Z   GRADLE_ACTION_ID: gradle/actions/setup-gradle
+2026-07-18T17:37:11.6293179Z   GRADLE_BUILD_ACTION_SETUP_COMPLETED: true
+2026-07-18T17:37:11.6293513Z   GRADLE_BUILD_ACTION_CACHE_RESTORED: true
+2026-07-18T17:37:11.6293979Z   DEVELOCITY_INJECTION_INIT_SCRIPT_NAME: gradle-actions.inject-develocity.init.gradle
+2026-07-18T17:37:11.6294575Z   DEVELOCITY_AUTO_INJECTION_CUSTOM_VALUE: gradle-actions
+2026-07-18T17:37:11.6294942Z   GITHUB_DEPENDENCY_GRAPH_ENABLED: false
+2026-07-18T17:37:11.6295265Z ##[endgroup]
+2026-07-18T17:37:12.2419023Z Downloading https://services.gradle.org/distributions/gradle-8.6-bin.zip
+2026-07-18T17:37:15.8709826Z ............10%.............20%............30%.............40%.............50%............60%.............70%.............80%............90%.............100%
+2026-07-18T17:37:17.2897215Z 
+2026-07-18T17:37:17.2932519Z Welcome to Gradle 8.6!
+2026-07-18T17:37:17.2956783Z 
+2026-07-18T17:37:17.2976972Z Here are the highlights of this release:
+2026-07-18T17:37:17.2977651Z  - Configurable encryption key for configuration cache
+2026-07-18T17:37:17.2978462Z  - Build init improvements
+2026-07-18T17:37:17.3017012Z  - Build authoring improvements
+2026-07-18T17:37:17.3036664Z 
+2026-07-18T17:37:17.3057345Z For more details see https://docs.gradle.org/8.6/release-notes.html
+2026-07-18T17:37:17.3076672Z 
+2026-07-18T17:37:17.5892516Z Starting a Gradle Daemon (subsequent builds will be faster)
+2026-07-18T17:38:41.7967756Z > Task :app:preBuild UP-TO-DATE
+2026-07-18T17:38:41.7976759Z > Task :app:preDebugBuild UP-TO-DATE
+2026-07-18T17:38:41.8877392Z > Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+2026-07-18T17:38:41.8880471Z > Task :app:checkKotlinGradlePluginConfigurationErrors
+2026-07-18T17:38:56.6935622Z > Task :app:generateDebugResValues
+2026-07-18T17:38:56.8910593Z > Task :app:checkDebugAarMetadata
+2026-07-18T17:38:56.8911853Z > Task :app:mapDebugSourceSetPaths
+2026-07-18T17:38:56.8914853Z > Task :app:generateDebugResources
+2026-07-18T17:38:59.3887384Z > Task :app:packageDebugResources
+2026-07-18T17:38:59.4877554Z > Task :app:mergeDebugResources
+2026-07-18T17:39:00.5887372Z > Task :app:createDebugCompatibleScreenManifests
+2026-07-18T17:39:00.5921822Z > Task :app:extractDeepLinksDebug
+2026-07-18T17:39:00.7911607Z > Task :app:parseDebugLocalResources
+2026-07-18T17:39:01.1875038Z > Task :app:processDebugMainManifest
+2026-07-18T17:39:01.3905830Z > Task :app:processDebugManifest
+2026-07-18T17:39:03.8909326Z > Task :app:processDebugManifestForPackage
+2026-07-18T17:39:03.9877514Z > Task :app:javaPreCompileDebug
+2026-07-18T17:39:05.1874770Z > Task :app:mergeDebugShaders
+2026-07-18T17:39:05.2880577Z > Task :app:compileDebugShaders NO-SOURCE
+2026-07-18T17:39:05.2907094Z > Task :app:generateDebugAssets UP-TO-DATE
+2026-07-18T17:39:05.4927389Z > Task :app:mergeDebugAssets
+2026-07-18T17:39:05.4936925Z > Task :app:compressDebugAssets
+2026-07-18T17:39:05.5898136Z > Task :app:desugarDebugFileDependencies
+2026-07-18T17:39:08.2875028Z > Task :app:processDebugResources
+2026-07-18T17:39:08.3897325Z > Task :app:checkDebugDuplicateClasses
+2026-07-18T17:39:38.2901391Z > Task :app:kspDebugKotlin
+2026-07-18T17:39:50.5897677Z > Task :app:mergeExtDexDebug
+2026-07-18T17:42:05.8875519Z > Task :app:mergeLibDexDebug
+2026-07-18T17:42:05.8947244Z > Task :app:mergeDebugJniLibFolders
+2026-07-18T17:42:06.2892668Z > Task :app:mergeDebugNativeLibs NO-SOURCE
+2026-07-18T17:42:06.2947378Z > Task :app:stripDebugDebugSymbols NO-SOURCE
+2026-07-18T17:42:07.6897512Z > Task :app:validateSigningDebug
+2026-07-18T17:42:07.6927073Z > Task :app:writeDebugAppMetadata
+2026-07-18T17:42:07.7877817Z > Task :app:writeDebugSigningConfigVersions
+2026-07-18T17:42:17.6898302Z e: file:///home/runner/work/Alexandria/Alexandria/app/src/main/java/com/alexandria/app/ui/screens/home/HomeViewModel.kt:34:24 Unresolved reference: launch
+2026-07-18T17:42:17.6899388Z 
+2026-07-18T17:42:17.6918704Z e: file:///home/runner/work/Alexandria/Alexandria/app/src/main/java/com/alexandria/app/ui/screens/home/HomeViewModel.kt:50:15 Suspend function 'collect' should be called only from a coroutine or another suspend function
+2026-07-18T17:42:17.6920316Z > Task :app:compileDebugKotlin FAILED
+2026-07-18T17:42:17.8892905Z 
+2026-07-18T17:42:17.8912510Z FAILURE: Build failed with an exception.
+2026-07-18T17:42:17.8947106Z 27 actionable tasks: 27 executed
+2026-07-18T17:42:17.8966478Z 
+2026-07-18T17:42:17.9006713Z * What went wrong:
+2026-07-18T17:42:17.9009508Z Execution failed for task ':app:compileDebugKotlin'.
+2026-07-18T17:42:17.9057818Z > A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+2026-07-18T17:42:17.9059012Z    > Compilation error. See log for more details
+2026-07-18T17:42:17.9059363Z 
+2026-07-18T17:42:17.9059694Z * Try:
+2026-07-18T17:42:17.9077040Z > Run with --stacktrace option to get the stack trace.
+2026-07-18T17:42:17.9085658Z > Run with --info or --debug option to get more log output.
+2026-07-18T17:42:17.9096869Z > Run with --scan to get full insights.
+2026-07-18T17:42:17.9135596Z > Get more help at https://help.gradle.org.
+2026-07-18T17:42:17.9136018Z 
+2026-07-18T17:42:17.9136371Z BUILD FAILED in 5m 6s
+2026-07-18T17:42:18.3812179Z ##[error]Process completed with exit code 1.
+2026-07-18T17:42:18.3989783Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-07-18T17:42:18.3991015Z Post job cleanup.
+2026-07-18T17:42:18.6033958Z In post-action step
+2026-07-18T17:42:18.6045001Z Stopping all Gradle daemons before saving Gradle User Home state
+2026-07-18T17:42:18.6047159Z Stopping Gradle daemons for /home/runner/.gradle/wrapper/dists/gradle-8.6-bin/afr5mpiioh2wthjmwnkmdsd5w/gradle-8.6
+2026-07-18T17:42:18.6062238Z (node:2467) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-07-18T17:42:18.6063659Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-07-18T17:42:18.6071979Z [command]/home/runner/.gradle/wrapper/dists/gradle-8.6-bin/afr5mpiioh2wthjmwnkmdsd5w/gradle-8.6/bin/gradle --stop
+2026-07-18T17:42:20.2156162Z Stopping Daemon(s)
+2026-07-18T17:42:20.2708760Z 1 Daemon stopped
+2026-07-18T17:42:20.2887898Z ##[group]Caching Gradle state
+2026-07-18T17:42:20.3480135Z Caching generated-gradle-jars with path '/home/runner/.gradle/caches/8.6/generated-gradle-jars/gradle-api-8.6.jar' and cache key: gradle-generated-gradle-jars-v1-724640d9b6d38238f67abd00073cebeb
+2026-07-18T17:42:20.3518933Z Caching wrapper-zips with path '/home/runner/.gradle/wrapper/dists/gradle-8.6-bin/afr5mpiioh2wthjmwnkmdsd5w' and cache key: gradle-wrapper-zips-v1-61c267d33d913e95c956e860b86f9705
+2026-07-18T17:42:20.3749003Z [command]/usr/bin/tar --posix -cf cache.tzst --exclude cache.tzst -P -C /home/runner/work/Alexandria/Alexandria --files-from manifest.txt --use-compress-program zstdmt
+2026-07-18T17:42:20.3825810Z [command]/usr/bin/tar --posix -cf cache.tzst --exclude cache.tzst -P -C /home/runner/work/Alexandria/Alexandria --files-from manifest.txt --use-compress-program zstdmt
+2026-07-18T17:42:22.1532304Z Caching dependencies with path '/home/runner/.gradle/caches/modules-*/files-*/*/*/*/*' and cache key: gradle-dependencies-v1-7559b1d62901718369567b74286935be
+2026-07-18T17:42:22.1642879Z Caching instrumented-jars with path '/home/runner/.gradle/caches/jars-*/*/' and cache key: gradle-instrumented-jars-v1-fa9457d5fb6fdaf886a9f8f9c2dd7ec5
+2026-07-18T17:42:22.2030113Z Caching kotlin-dsl with path '/home/runner/.gradle/caches/*/kotlin-dsl/accessors/*/
+2026-07-18T17:42:22.2031750Z /home/runner/.gradle/caches/*/kotlin-dsl/scripts/*/' and cache key: gradle-kotlin-dsl-v1-ec5847a7c1348d2faa0a86c0efc50514
+2026-07-18T17:42:22.2472699Z ##[warning]Failed to save cache entry with path '/home/runner/.gradle/wrapper/dists/gradle-8.6-bin/afr5mpiioh2wthjmwnkmdsd5w' and key: gradle-wrapper-zips-v1-61c267d33d913e95c956e860b86f9705: Error: <h2>Our services aren't available right now</h2><p>We're working to restore all services as soon as possible. Please check back soon.</p>0/rpbagAAAADxw4o3jbCCRphGWkQuPOCfQ08xRURHRTE4MjEARWRnZQ==
+2026-07-18T17:42:22.2939116Z [command]/usr/bin/tar --posix -cf cache.tzst --exclude cache.tzst -P -C /home/runner/work/Alexandria/Alexandria --files-from manifest.txt --use-compress-program zstdmt
+2026-07-18T17:42:22.3103405Z ##[warning]Failed to save cache entry with path '/home/runner/.gradle/caches/8.6/generated-gradle-jars/gradle-api-8.6.jar' and key: gradle-generated-gradle-jars-v1-724640d9b6d38238f67abd00073cebeb: Error: <h2>Our services aren't available right now</h2><p>We're working to restore all services as soon as possible. Please check back soon.</p>0/rpbagAAAABnrNfCcDeMQ7pYmaI+uqrXQ08xRURHRTE4MTMARWRnZQ==
+2026-07-18T17:42:22.3744101Z [command]/usr/bin/tar --posix -cf cache.tzst --exclude cache.tzst -P -C /home/runner/work/Alexandria/Alexandria --files-from manifest.txt --use-compress-program zstdmt
+2026-07-18T17:42:22.4095874Z ##[warning]Failed to save cache entry with path '/home/runner/.gradle/caches/jars-*/*/' and key: gradle-instrumented-jars-v1-fa9457d5fb6fdaf886a9f8f9c2dd7ec5: Error: <h2>Our services aren't available right now</h2><p>We're working to restore all services as soon as possible. Please check back soon.</p>0/rpbagAAAAAD2/NR4qtiSL0Tiu5HwQO3U1RCRURHRTAyMDgARWRnZQ==
+2026-07-18T17:42:22.4857442Z ##[warning]Failed to save cache entry with path '/home/runner/.gradle/caches/*/kotlin-dsl/accessors/*/
+/home/runner/.gradle/caches/*/kotlin-dsl/scripts/*/' and key: gradle-kotlin-dsl-v1-ec5847a7c1348d2faa0a86c0efc50514: Error: <h2>Our services aren't available right now</h2><p>We're working to restore all services as soon as possible. Please check back soon.</p>0/rpbagAAAAC6iOhkp01wSqaKxivo9Rd6V1NURURHRTA1MTMARWRnZQ==
+2026-07-18T17:42:22.9777169Z Caching transforms with path '/home/runner/.gradle/caches/transforms-4/*/
+2026-07-18T17:42:22.9783289Z /home/runner/.gradle/caches/*/transforms/*/' and cache key: gradle-transforms-v1-04f2281b1b49d3e893a8f2fbe9d4319e
+2026-07-18T17:42:23.0041906Z [command]/usr/bin/tar --posix -cf cache.tzst --exclude cache.tzst -P -C /home/runner/work/Alexandria/Alexandria --files-from manifest.txt --use-compress-program zstdmt
+2026-07-18T17:42:23.9637488Z [command]/usr/bin/tar --posix -cf cache.tzst --exclude cache.tzst -P -C /home/runner/work/Alexandria/Alexandria --files-from manifest.txt --use-compress-program zstdmt
+2026-07-18T17:42:24.8670589Z ##[warning]Failed to save cache entry with path '/home/runner/.gradle/caches/modules-*/files-*/*/*/*/*' and key: gradle-dependencies-v1-7559b1d62901718369567b74286935be: Error: <h2>Our services aren't available right now</h2><p>We're working to restore all services as soon as possible. Please check back soon.</p>0ALtbagAAAABYJw078LhjR5a8DdvRhjk3Q08xRURHRTEyMTIARWRnZQ==
+2026-07-18T17:42:27.5709063Z ##[warning]Failed to save cache entry with path '/home/runner/.gradle/caches/transforms-4/*/
+/home/runner/.gradle/caches/*/transforms/*/' and key: gradle-transforms-v1-04f2281b1b49d3e893a8f2fbe9d4319e: Error: <h2>Our services aren't available right now</h2><p>We're working to restore all services as soon as possible. Please check back soon.</p>0A7tbagAAAAA/vLcnMsgFTqjmlD/zAoLlQ08xRURHRTE2MTkARWRnZQ==
+2026-07-18T17:42:28.0398898Z Caching Gradle User Home with cache key: gradle-home-v1|Linux|build[e080f0fdc288b6f0c5023fd4b86f7a10]-ab31a718e54cf142c9d3bc21b81ae72588beeff2
+2026-07-18T17:42:28.0499148Z [command]/usr/bin/tar --posix -cf cache.tzst --exclude cache.tzst -P -C /home/runner/work/Alexandria/Alexandria --files-from manifest.txt --use-compress-program zstdmt
+2026-07-18T17:42:28.1898008Z ##[warning]Failed to save cache entry with path '/home/runner/.gradle/caches,/home/runner/.gradle/notifications,/home/runner/.gradle/.setup-gradle' and key: gradle-home-v1|Linux|build[e080f0fdc288b6f0c5023fd4b86f7a10]-ab31a718e54cf142c9d3bc21b81ae72588beeff2: Error: <h2>Our services aren't available right now</h2><p>We're working to restore all services as soon as possible. Please check back soon.</p>0BLtbagAAAACyPGHZNIz4QKTdXYDXbw8oQ08xRURHRTIzMTIARWRnZQ==
+2026-07-18T17:42:28.1903693Z ##[endgroup]
+2026-07-18T17:42:28.1904458Z Generating Job Summary
+2026-07-18T17:42:28.1920967Z Completed post-action step
+2026-07-18T17:42:28.2144964Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-07-18T17:42:28.2146524Z Post job cleanup.
+2026-07-18T17:42:28.3582351Z (node:2577) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-07-18T17:42:28.3583958Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-07-18T17:42:28.3844301Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-07-18T17:42:28.3846693Z Post job cleanup.
+2026-07-18T17:42:28.5617111Z [command]/usr/bin/git version
+2026-07-18T17:42:28.5679533Z git version 2.54.0
+2026-07-18T17:42:28.5764343Z Temporarily overriding HOME='/home/runner/work/_temp/9632f489-ee25-4a31-a9f6-72500bca2708' before making global git config changes
+2026-07-18T17:42:28.5787158Z Adding repository directory to the temporary git global config as a safe directory
+2026-07-18T17:42:28.5807369Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Alexandria/Alexandria
+2026-07-18T17:42:28.5928041Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-07-18T17:42:28.6039025Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-07-18T17:42:28.6518839Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-07-18T17:42:28.6577916Z http.https://github.com/.extraheader
+2026-07-18T17:42:28.6647915Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-07-18T17:42:28.6698684Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-07-18T17:42:28.7077892Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-07-18T17:42:28.7147191Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-07-18T17:42:28.7662284Z Cleaning up orphan processes
+2026-07-18T17:42:28.7951890Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-java@v4, gradle/actions/setup-gradle@v3. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

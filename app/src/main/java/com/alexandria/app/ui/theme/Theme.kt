@@ -55,9 +55,6 @@ fun AlexandriaTheme(
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            if (darkTheme) DarkColorScheme else LightColorScheme
-        }
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
     }

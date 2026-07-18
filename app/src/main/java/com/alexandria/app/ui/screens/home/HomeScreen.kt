@@ -72,6 +72,7 @@ fun HomeScreen(
 
                 item {
                     LazyRow(
+                        contentPadding = PaddingValues(horizontal = 16.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(uiState.currentlyReading, key = { it.id }) { book ->

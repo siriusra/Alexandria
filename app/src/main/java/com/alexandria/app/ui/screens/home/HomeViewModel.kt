@@ -32,23 +32,15 @@ class HomeViewModel @Inject constructor(
 
     private fun loadData() {
         viewModelScope.launch {
-            combine(
-                repository.getBooksByStatus(ReadingStatus.READING),
-                repository.getAllBooks(),
-                repository.getBookCountByStatus(ReadingStatus.READING),
-                repository.getBookCountByStatus(ReadingStatus.FINISHED),
-                repository.getBookCountByStatus(ReadingStatus.PENDING)
-            ) { reading, all, readingCount, finishedCount, pendingCount ->
-                HomeUiState(
-                    currentlyReading = reading,
-                    recentlyAdded = all.take(10),
-                    totalBooks = all.size,
-                    readingCount = readingCount,
-                    finishedCount = finishedCount,
-                    pendingCount = pendingCount
+            repository.getAllBooks().collect { allBooks ->
+                _uiState.value = HomeUiState(
+                    currentlyReading = allBooks.filter { it.status == ReadingStatus.READING },
+                    recentlyAdded = allBooks.sortedByDescending { it.dateAdded }.take(10),
+                    totalBooks = allBooks.size,
+                    readingCount = allBooks.count { it.status == ReadingStatus.READING },
+                    finishedCount = allBooks.count { it.status == ReadingStatus.FINISHED },
+                    pendingCount = allBooks.count { it.status == ReadingStatus.PENDING }
                 )
-            }.collect { state ->
-                _uiState.value = state
             }
         }
     }

@@ -44,41 +44,61 @@ class LibraryViewModel @Inject constructor(
 
     private fun loadData() {
         viewModelScope.launch {
-            combine(
-                repository.getAllBooks(),
-                _isGridView,
-                _selectedStatus,
-                _selectedGenre,
-                _sortBy
-            ) { books, isGrid, status, genre, sort ->
-                var filtered = books
-
-                status?.let { s ->
-                    filtered = filtered.filter { it.status == s }
-                }
-
-                genre?.let { g ->
-                    filtered = filtered.filter { it.genre == g }
-                }
-
-                filtered = when (sort) {
-                    SortOption.DATE_ADDED -> filtered.sortedByDescending { it.dateAdded }
-                    SortOption.TITLE -> filtered.sortedBy { it.title.lowercase() }
-                    SortOption.AUTHOR -> filtered.sortedBy { it.author.lowercase() }
-                    SortOption.RATING -> filtered.sortedByDescending { it.rating ?: 0f }
-                }
-
-                LibraryUiState(
-                    books = filtered,
-                    isGridView = isGrid,
-                    selectedStatus = status,
-                    selectedGenre = genre,
-                    sortBy = sort
-                )
-            }.collect { state ->
-                _uiState.value = state
+            repository.getAllBooks().collect { books ->
+                updateState(books)
             }
         }
+
+        viewModelScope.launch {
+            _isGridView.collect { updateState() }
+        }
+
+        viewModelScope.launch {
+            _selectedStatus.collect { updateState() }
+        }
+
+        viewModelScope.launch {
+            _selectedGenre.collect { updateState() }
+        }
+
+        viewModelScope.launch {
+            _sortBy.collect { updateState() }
+        }
+    }
+
+    private var cachedBooks: List<Book> = emptyList()
+
+    private fun updateState(books: List<Book> = cachedBooks) {
+        cachedBooks = books
+        val status = _selectedStatus.value
+        val genre = _selectedGenre.value
+        val sort = _sortBy.value
+        val isGrid = _isGridView.value
+
+        var filtered = books
+
+        status?.let { s ->
+            filtered = filtered.filter { it.status == s }
+        }
+
+        genre?.let { g ->
+            filtered = filtered.filter { it.genre == g }
+        }
+
+        filtered = when (sort) {
+            SortOption.DATE_ADDED -> filtered.sortedByDescending { it.dateAdded }
+            SortOption.TITLE -> filtered.sortedBy { it.title.lowercase() }
+            SortOption.AUTHOR -> filtered.sortedBy { it.author.lowercase() }
+            SortOption.RATING -> filtered.sortedByDescending { it.rating ?: 0f }
+        }
+
+        _uiState.value = LibraryUiState(
+            books = filtered,
+            isGridView = isGrid,
+            selectedStatus = status,
+            selectedGenre = genre,
+            sortBy = sort
+        )
     }
 
     fun toggleView() {
