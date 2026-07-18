@@ -1,0 +1,2 @@
+-keep class com.alexandria.app.data.local.entity.** { *; }
+-keep class com.alexandria.app.data.remote.** { *; }
