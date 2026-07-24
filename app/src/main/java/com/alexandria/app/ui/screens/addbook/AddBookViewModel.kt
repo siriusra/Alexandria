@@ -31,7 +31,7 @@ data class AddBookUiState(
     val isSearchingCover: Boolean = false,
     val coverSearchResults: List<GoogleBookItem> = emptyList(),
     val coverSearchError: String? = null,
-    val coverProvider: CoverProvider = CoverProvider.GOOGLE_BOOKS,
+    val coverProvider: CoverProvider = CoverProvider.WEB_SEARCH,
     val savedSuccessfully: Boolean = false,
     val isEditing: Boolean = false
 )

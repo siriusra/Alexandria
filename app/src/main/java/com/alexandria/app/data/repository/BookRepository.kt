@@ -4,6 +4,7 @@ import android.util.Log
 import com.alexandria.app.data.local.BookDao
 import com.alexandria.app.data.local.entity.BookEntity
 import com.alexandria.app.data.remote.CoverService
+import com.alexandria.app.data.remote.DuckDuckGoCoverService
 import com.alexandria.app.data.remote.GoogleBookItem
 import com.alexandria.app.domain.model.Book
 import com.alexandria.app.domain.model.CoverProvider
@@ -17,7 +18,8 @@ import javax.inject.Singleton
 @Singleton
 class BookRepository @Inject constructor(
     private val bookDao: BookDao,
-    private val coverService: CoverService
+    private val coverService: CoverService,
+    private val duckDuckGoService: DuckDuckGoCoverService
 ) {
     fun getAllBooks(): Flow<List<Book>> {
         return bookDao.getAllBooks().map { entities ->
@@ -82,23 +84,10 @@ class BookRepository @Inject constructor(
     suspend fun searchCovers(query: String, provider: CoverProvider): List<GoogleBookItem> {
         return try {
             when (provider) {
-                CoverProvider.GOOGLE_BOOKS -> {
+                CoverProvider.WEB_SEARCH -> {
                     val trimmedQuery = query.trim()
                     if (trimmedQuery.isBlank()) return emptyList()
-                    val response = coverService.googleBooksApi.searchBooks(trimmedQuery)
-                    val items = response.items
-                    Log.d("BookRepository", "Google Books: found ${items?.size ?: 0} items for '$trimmedQuery'")
-                    items?.map { bookItem ->
-                        val sanitizedThumbnail = coverService.getCoverUrl(bookItem.volumeInfo, bookItem.id)
-                        GoogleBookItem(
-                            id = bookItem.id,
-                            volumeInfo = bookItem.volumeInfo.copy(
-                                imageLinks = bookItem.volumeInfo.imageLinks?.copy(
-                                    thumbnail = sanitizedThumbnail
-                                )
-                            )
-                        )
-                    } ?: emptyList()
+                    duckDuckGoService.searchCovers("$trimmedQuery book cover")
                 }
                 CoverProvider.OPEN_LIBRARY -> {
                     val trimmedQuery = query.trim()
