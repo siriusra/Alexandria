@@ -111,15 +111,17 @@ fun BookCarousel(
             verticalAlignment = Alignment.CenterVertically
         ) {
             val pageCount = items.size
+            val primaryColor = MaterialTheme.colorScheme.primary
+            val onSurfaceColor = MaterialTheme.colorScheme.onSurface
             for (i in 0 until pageCount.coerceAtMost(10)) {
                 val isSelected = pagerState.currentPage == i
+                val dotColor = if (isSelected) primaryColor else onSurfaceColor.copy(alpha = 0.3f)
                 Box(
                     modifier = Modifier
                         .size(if (isSelected) 8.dp else 6.dp)
                         .drawBehind {
                             drawRoundRect(
-                                color = if (isSelected) MaterialTheme.colorScheme.primary
-                                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                                color = dotColor,
                                 cornerRadius = CornerRadius(size.width / 2f, size.height / 2f)
                             )
                         }
@@ -129,6 +131,7 @@ fun BookCarousel(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 private fun androidx.compose.foundation.pager.PagerState.calculateCurrentOffsetForPage(page: Int): Float {
     return (currentPage - page) + currentPageOffsetFraction
 }
