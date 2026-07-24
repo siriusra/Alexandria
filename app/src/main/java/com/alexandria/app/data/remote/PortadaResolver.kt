@@ -3,7 +3,6 @@ package com.alexandria.app.data.remote
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlin.math.minOf
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
@@ -50,7 +49,7 @@ class PortadaResolver {
             if (!json.has("items")) return@withContext emptyList()
             val items = json.getJSONArray("items")
             val results = mutableListOf<GoogleBookItem>()
-            for (i in 0 until minOf(items.length(), maxResults)) {
+            for (i in 0 until items.length().coerceAtMost(maxResults)) {
                 val item = items.getJSONObject(i)
                 val id = item.optString("id", "gb_$i")
                 val vi = item.optJSONObject("volumeInfo") ?: continue
