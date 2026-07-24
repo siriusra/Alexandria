@@ -5,7 +5,6 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.alexandria.app.domain.model.Book
-import com.alexandria.app.domain.model.CoverProvider
 import com.alexandria.app.domain.model.ReadingStatus
 import com.alexandria.app.data.remote.GoogleBookItem
 import com.alexandria.app.data.repository.BookRepository
@@ -31,7 +30,6 @@ data class AddBookUiState(
     val isSearchingCover: Boolean = false,
     val coverSearchResults: List<GoogleBookItem> = emptyList(),
     val coverSearchError: String? = null,
-    val coverProvider: CoverProvider = CoverProvider.GOOGLE_BOOKS,
     val savedSuccessfully: Boolean = false,
     val isEditing: Boolean = false
 )
@@ -123,10 +121,6 @@ class AddBookViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(isbn = value)
     }
 
-    fun onCoverProviderChange(provider: CoverProvider) {
-        _uiState.value = _uiState.value.copy(coverProvider = provider)
-    }
-
     fun searchCovers(query: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
@@ -134,7 +128,7 @@ class AddBookViewModel @Inject constructor(
                 coverSearchError = null
             )
             try {
-                val results = repository.searchCovers(query, _uiState.value.coverProvider)
+                val results = repository.searchCovers(query, com.alexandria.app.domain.model.CoverProvider.OPEN_LIBRARY)
                 _uiState.value = _uiState.value.copy(
                     coverSearchResults = results,
                     isSearchingCover = false,

@@ -18,7 +18,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.alexandria.app.data.remote.GoogleBookItem
-import com.alexandria.app.domain.model.CoverProvider
 
 @Composable
 fun CoverPicker(
@@ -28,8 +27,6 @@ fun CoverPicker(
     searchResults: List<GoogleBookItem>,
     isSearching: Boolean,
     onSearch: (String) -> Unit,
-    coverProvider: CoverProvider,
-    onProviderChange: (CoverProvider) -> Unit,
     errorMessage: String? = null,
     modifier: Modifier = Modifier
 ) {
@@ -115,21 +112,6 @@ fun CoverPicker(
             title = { Text("Buscar portada") },
             text = {
                 Column {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        CoverProvider.entries.forEach { provider ->
-                            FilterChip(
-                                selected = coverProvider == provider,
-                                onClick = { onProviderChange(provider) },
-                                label = { Text(provider.displayName) }
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
@@ -145,7 +127,7 @@ fun CoverPicker(
                         modifier = Modifier.fillMaxWidth(),
                         enabled = searchQuery.isNotBlank() && !isSearching
                     ) {
-                        Text("Buscar")
+                        Text("Buscar en Open Library")
                     }
 
                     if (isSearching) {
@@ -206,16 +188,7 @@ fun CoverPicker(
 private fun resolveBestCoverUrl(item: GoogleBookItem): String? {
     val thumbnail = item.volumeInfo.imageLinks?.thumbnail
     if (thumbnail != null) {
-        var sanitized = thumbnail.replace("http://", "https://")
-        sanitized = sanitized.replace(Regex("[&?]imgtk=[^&]*"), "")
-        sanitized = sanitized.replace("&&+", "&")
-        sanitized = sanitized.replace("?&", "?")
-        sanitized = sanitized.trimEnd('&', '?')
-        if (sanitized.isNotBlank()) return sanitized
+        return thumbnail
     }
-    val smallThumbnail = item.volumeInfo.imageLinks?.smallThumbnail
-    if (smallThumbnail != null) {
-        return smallThumbnail.replace("http://", "https://")
-    }
-    return null
+    return item.volumeInfo.imageLinks?.smallThumbnail
 }
