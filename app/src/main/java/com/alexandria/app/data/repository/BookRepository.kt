@@ -88,7 +88,17 @@ class BookRepository @Inject constructor(
                     val response = coverService.googleBooksApi.searchBooks(trimmedQuery)
                     val items = response.items
                     Log.d("BookRepository", "Google Books: found ${items?.size ?: 0} items for '$trimmedQuery'")
-                    items ?: emptyList()
+                    items?.map { bookItem ->
+                        val sanitizedThumbnail = coverService.getCoverUrl(bookItem.volumeInfo, bookItem.id)
+                        GoogleBookItem(
+                            id = bookItem.id,
+                            volumeInfo = bookItem.volumeInfo.copy(
+                                imageLinks = bookItem.volumeInfo.imageLinks?.copy(
+                                    thumbnail = sanitizedThumbnail
+                                )
+                            )
+                        )
+                    } ?: emptyList()
                 }
                 CoverProvider.OPEN_LIBRARY -> {
                     val trimmedQuery = query.trim()

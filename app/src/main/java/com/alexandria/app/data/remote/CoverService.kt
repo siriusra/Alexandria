@@ -32,10 +32,29 @@ class CoverService @Inject constructor() {
 
     val openLibraryApi: OpenLibraryApi = openLibraryRetrofit.create(OpenLibraryApi::class.java)
 
-    fun getCoverUrl(volumeInfo: VolumeInfo): String? {
-        return volumeInfo.imageLinks?.thumbnail
-            ?.replace("http://", "https://")
-            ?.replace("edge=curl", "edge=curl&fife=w400-h600")
+    fun getCoverUrl(volumeInfo: VolumeInfo, volumeId: String?): String? {
+        val thumbnail = volumeInfo.imageLinks?.thumbnail
+        if (thumbnail != null) {
+            val sanitized = sanitizeGoogleCoverUrl(thumbnail)
+            if (sanitized != null) return sanitized
+        }
+        return buildGoogleBooksCoverUrl(volumeId)
+    }
+
+    fun buildGoogleBooksCoverUrl(volumeId: String?, zoom: Int = 2): String? {
+        if (volumeId.isNullOrBlank()) return null
+        return "https://books.google.com/books/content?id=$volumeId" +
+                "&printsec=frontcover&img=1&zoom=$zoom&edge=curl&source=gbs_api"
+    }
+
+    fun sanitizeGoogleCoverUrl(url: String?): String? {
+        if (url.isNullOrBlank()) return null
+        var sanitized = url.replace("http://", "https://")
+        sanitized = sanitized.replace(Regex("[&?]imgtk=[^&]*"), "")
+        sanitized = sanitized.replace("&&+", "&")
+        sanitized = sanitized.replace("?&", "?")
+        sanitized = sanitized.trimEnd('&', '?')
+        return sanitized.ifBlank { null }
     }
 
     fun getOpenLibraryCoverUrl(coverId: Long): String {

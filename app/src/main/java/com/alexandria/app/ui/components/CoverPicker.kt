@@ -175,19 +175,15 @@ fun CoverPicker(
                                     modifier = Modifier
                                         .padding(4.dp)
                                         .clickable {
-                                            item.volumeInfo.imageLinks?.thumbnail?.let { url ->
-                                                val cleanUrl = url
-                                                    .replace("http://", "https://")
-                                                    .replace("edge=curl", "edge=curl&fife=w400-h600")
-                                                onCoverSelected(cleanUrl)
+                                            val coverUrl = resolveBestCoverUrl(item)
+                                            if (coverUrl != null) {
+                                                onCoverSelected(coverUrl)
                                             }
                                             showSearchDialog = false
                                         }
                                 ) {
                                     AsyncImage(
-                                        model = item.volumeInfo.imageLinks?.thumbnail?.replace(
-                                            "http://", "https://"
-                                        ),
+                                        model = resolveBestCoverUrl(item),
                                         contentDescription = item.volumeInfo.title,
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -207,4 +203,22 @@ fun CoverPicker(
             }
         )
     }
+}
+
+private fun resolveBestCoverUrl(item: GoogleBookItem): String? {
+    val thumbnail = item.volumeInfo.imageLinks?.thumbnail
+    if (thumbnail != null) {
+        var sanitized = thumbnail.replace("http://", "https://")
+        sanitized = sanitized.replace(Regex("[&?]imgtk=[^&]*"), "")
+        sanitized = sanitized.replace("&&+", "&")
+        sanitized = sanitized.replace("?&", "?")
+        sanitized = sanitized.trimEnd('&', '?')
+        if (sanitized.isNotBlank()) return sanitized
+    }
+    val id = item.id
+    if (!id.isNullOrBlank()) {
+        return "https://books.google.com/books/content?id=$id" +
+                "&printsec=frontcover&img=1&zoom=2&edge=curl&source=gbs_api"
+    }
+    return null
 }
