@@ -13,8 +13,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.alexandria.app.domain.model.ReadingStatus
+import com.alexandria.app.ui.components.BookCarousel
 import com.alexandria.app.ui.components.BookGrid
 import com.alexandria.app.ui.components.BookList
+import com.alexandria.app.ui.components.ViewMode
 import com.alexandria.app.ui.components.ViewToggle
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -33,8 +35,8 @@ fun LibraryScreen(
                 title = { Text("Biblioteca") },
                 actions = {
                     ViewToggle(
-                        isGridView = uiState.isGridView,
-                        onToggle = { viewModel.toggleView() }
+                        viewMode = uiState.viewMode,
+                        onModeSelected = { viewModel.setViewMode(it) }
                     )
 
                     Box {
@@ -94,16 +96,27 @@ fun LibraryScreen(
                     )
                 }
             } else {
-                if (uiState.isGridView) {
-                    BookGrid(
-                        books = uiState.books,
-                        onBookClick = onNavigateToBookDetail
-                    )
-                } else {
-                    BookList(
-                        books = uiState.books,
-                        onBookClick = onNavigateToBookDetail
-                    )
+                when (uiState.viewMode) {
+                    ViewMode.GRID -> {
+                        BookGrid(
+                            books = uiState.books,
+                            onBookClick = onNavigateToBookDetail
+                        )
+                    }
+                    ViewMode.LIST -> {
+                        BookList(
+                            books = uiState.books,
+                            onBookClick = onNavigateToBookDetail
+                        )
+                    }
+                    ViewMode.CAROUSEL -> {
+                        BookCarousel(
+                            items = uiState.carouselItems,
+                            expandedSaga = uiState.expandedSaga,
+                            onSagaToggle = { viewModel.setExpandedSaga(it) },
+                            onBookClick = onNavigateToBookDetail
+                        )
+                    }
                 }
             }
         }

@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.alexandria.app.domain.model.Book
 import com.alexandria.app.domain.model.ReadingStatus
 import com.alexandria.app.data.repository.BookRepository
+import com.alexandria.app.ui.components.CarouselItem
+import com.alexandria.app.ui.components.ViewMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -13,10 +15,12 @@ import javax.inject.Inject
 
 data class LibraryUiState(
     val books: List<Book> = emptyList(),
-    val isGridView: Boolean = true,
+    val viewMode: ViewMode = ViewMode.GRID,
     val selectedStatus: ReadingStatus? = null,
     val selectedGenre: String? = null,
-    val sortBy: SortOption = SortOption.DATE_ADDED
+    val sortBy: SortOption = SortOption.DATE_ADDED,
+    val carouselItems: List<CarouselItem> = emptyList(),
+    val expandedSaga: String? = null
 )
 
 enum class SortOption(val displayName: String) {
@@ -34,10 +38,11 @@ class LibraryViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(LibraryUiState())
     val uiState: StateFlow<LibraryUiState> = _uiState.asStateFlow()
 
-    private val _isGridView = MutableStateFlow(true)
+    private val _viewMode = MutableStateFlow(ViewMode.GRID)
     private val _selectedStatus = MutableStateFlow<ReadingStatus?>(null)
     private val _selectedGenre = MutableStateFlow<String?>(null)
     private val _sortBy = MutableStateFlow(SortOption.DATE_ADDED)
+    private val _expandedSaga = MutableStateFlow<String?>(null)
 
     private var cachedBooks: List<Book> = emptyList()
 
@@ -66,7 +71,11 @@ class LibraryViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            _isGridView.collect { rebuildUiState() }
+            _viewMode.collect { rebuildUiState() }
+        }
+
+        viewModelScope.launch {
+            _expandedSaga.collect { rebuildUiState() }
         }
     }
 
@@ -76,7 +85,8 @@ class LibraryViewModel @Inject constructor(
             val status = _selectedStatus.value
             val genre = _selectedGenre.value
             val sort = _sortBy.value
-            val isGrid = _isGridView.value
+            val mode = _viewMode.value
+            val saga = _expandedSaga.value
 
             var result: List<Book> = ArrayList(books)
 
@@ -97,10 +107,12 @@ class LibraryViewModel @Inject constructor(
 
             _uiState.value = LibraryUiState(
                 books = result,
-                isGridView = isGrid,
+                viewMode = mode,
                 selectedStatus = status,
                 selectedGenre = genre,
-                sortBy = sort
+                sortBy = sort,
+                carouselItems = buildCarouselItems(result),
+                expandedSaga = saga
             )
         } catch (e: Exception) {
             Log.e("LibraryViewModel", "Error rebuilding UI state", e)
@@ -108,8 +120,38 @@ class LibraryViewModel @Inject constructor(
         }
     }
 
-    fun toggleView() {
-        _isGridView.value = !_isGridView.value
+    private fun buildCarouselItems(books: List<Book>): List<CarouselItem> {
+        val seriesBooks = books.filter { it.seriesName != null }
+            .groupBy { it.seriesName!! }
+        val nonSeriesBooks = books.filter { it.seriesName == null }
+        val items = mutableListOf<CarouselItem>()
+        val usedSeriesNames = mutableSetOf<String>()
+
+        for (book in nonSeriesBooks) {
+            items.add(CarouselItem.Single(book))
+        }
+
+        for ((series, groupedBooks) in seriesBooks) {
+            if (series !in usedSeriesNames) {
+                usedSeriesNames.add(series)
+                items.add(
+                    CarouselItem.Series(
+                        seriesName = series,
+                        books = groupedBooks.sortedBy { it.seriesOrder ?: Int.MAX_VALUE }
+                    )
+                )
+            }
+        }
+
+        return items
+    }
+
+    fun setViewMode(mode: ViewMode) {
+        _viewMode.value = mode
+    }
+
+    fun setExpandedSaga(sagaName: String?) {
+        _expandedSaga.value = sagaName
     }
 
     fun setStatusFilter(status: ReadingStatus?) {
