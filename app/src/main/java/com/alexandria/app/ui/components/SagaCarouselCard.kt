@@ -59,7 +59,8 @@ fun SagaCarouselCard(
         Column(
             modifier = Modifier.fillMaxWidth()
         ) {
-            val coverUrl = books.firstOrNull()?.coverUrl
+            val firstBook = books.firstOrNull()
+            val coverModel = firstBook?.coverUrl ?: firstBook?.coverLocalPath
 
             Box(
                 modifier = Modifier
@@ -67,9 +68,9 @@ fun SagaCarouselCard(
                     .height(180.dp)
                     .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
             ) {
-                if (coverUrl != null) {
+                if (coverModel != null) {
                     AsyncImage(
-                        model = coverUrl,
+                        model = coverModel,
                         contentDescription = seriesName,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
@@ -185,11 +186,14 @@ fun SagaCarouselCard(
                 enter = expandVertically(),
                 exit = shrinkVertically()
             ) {
+                val rows = (books.size + 1) / 2
+                val gridHeight = rows * 210 + (rows - 1).coerceAtLeast(0) * 8 + 8
+
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(2),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height((books.size / 2f).coerceAtLeast(1f) * 210.dp)
+                        .height(gridHeight.dp)
                         .padding(horizontal = 8.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -227,9 +231,9 @@ private fun MiniBookCard(
                     .height(120.dp)
                     .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
             ) {
-                if (book.coverUrl != null) {
+                if (book.coverUrl != null || book.coverLocalPath != null) {
                     AsyncImage(
-                        model = book.coverUrl,
+                        model = book.coverUrl ?: book.coverLocalPath,
                         contentDescription = book.title,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop

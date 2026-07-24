@@ -52,9 +52,9 @@ fun CarouselCard(
                     .weight(1f)
                     .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
             ) {
-                if (book.coverUrl != null) {
+                if (book.coverUrl != null || book.coverLocalPath != null) {
                     AsyncImage(
-                        model = book.coverUrl,
+                        model = book.coverUrl ?: book.coverLocalPath,
                         contentDescription = book.title,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
@@ -91,11 +91,7 @@ fun CarouselCard(
                     }
                 ) {
                     Text(
-                        text = when (book.status) {
-                            ReadingStatus.READING -> "Leyendo"
-                            ReadingStatus.FINISHED -> "Leído"
-                            ReadingStatus.PENDING -> "Pendiente"
-                        },
+                        text = book.status.displayName,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
