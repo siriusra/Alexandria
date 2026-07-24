@@ -1,5 +1,6 @@
 package com.alexandria.app.ui.components
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerDefaults
@@ -21,6 +22,7 @@ sealed class CarouselItem {
     data class Series(val seriesName: String, val books: List<Book>) : CarouselItem()
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun BookCarousel(
     items: List<CarouselItem>,
@@ -52,7 +54,7 @@ fun BookCarousel(
                     state = pagerState,
                     pagerSnapDistance = PagerSnapDistance.atMost(1)
                 ),
-                beyondViewportPageCount = 1
+                beyondBoundsPageCount = 1
             ) { page ->
                 val pageOffset = pagerState.calculateCurrentOffsetForPage(page)
                 val scaleFactor = 1f - (pageOffset.absoluteValue * 0.15f).coerceIn(0f, 0.15f)
