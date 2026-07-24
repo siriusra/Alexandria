@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.alexandria.app.data.remote.GoogleBookItem
@@ -27,6 +28,7 @@ fun CoverPicker(
     searchResults: List<GoogleBookItem>,
     isSearching: Boolean,
     onSearch: (String) -> Unit,
+    onBookSelected: ((GoogleBookItem) -> Unit)? = null,
     errorMessage: String? = null,
     modifier: Modifier = Modifier
 ) {
@@ -159,17 +161,31 @@ fun CoverPicker(
                                             if (coverUrl != null) {
                                                 onCoverSelected(coverUrl)
                                             }
+                                            onBookSelected?.invoke(item)
                                             showSearchDialog = false
                                         }
                                 ) {
-                                    AsyncImage(
-                                        model = resolveBestCoverUrl(item),
-                                        contentDescription = item.volumeInfo.title,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(120.dp),
-                                        contentScale = ContentScale.Crop
-                                    )
+                                    Column {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(100.dp)
+                                        ) {
+                                            AsyncImage(
+                                                model = resolveBestCoverUrl(item),
+                                                contentDescription = item.volumeInfo.title,
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                        }
+                                        Text(
+                                            text = item.volumeInfo.title.orEmpty(),
+                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
                                 }
                             }
                         }

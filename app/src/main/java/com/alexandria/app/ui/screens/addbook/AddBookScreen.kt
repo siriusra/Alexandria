@@ -69,6 +69,7 @@ fun AddBookScreen(
                 searchResults = uiState.coverSearchResults,
                 isSearching = uiState.isSearchingCover,
                 onSearch = { viewModel.searchCovers(it) },
+                onBookSelected = { viewModel.applyBookMetadata(it) },
                 errorMessage = uiState.coverSearchError
             )
 

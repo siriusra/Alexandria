@@ -148,6 +148,24 @@ class AddBookViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(coverSearchError = null)
     }
 
+    fun applyBookMetadata(bookItem: GoogleBookItem) {
+        val info = bookItem.volumeInfo
+        val authorText = info.authors?.joinToString(", ") ?: ""
+        val yearText = info.publishedDate?.take(4) ?: ""
+        val pagesText = info.pageCount?.toString() ?: ""
+        val isbnText = info.industryIdentifiers?.firstOrNull()?.identifier ?: ""
+        val genreText = info.categories?.firstOrNull() ?: ""
+
+        _uiState.value = _uiState.value.copy(
+            title = info.title ?: _uiState.value.title,
+            author = if (authorText.isNotBlank()) authorText else _uiState.value.author,
+            year = if (yearText.isNotBlank()) yearText else _uiState.value.year,
+            pageCount = if (pagesText.isNotBlank()) pagesText else _uiState.value.pageCount,
+            isbn = if (isbnText.isNotBlank()) isbnText else _uiState.value.isbn,
+            genre = if (genreText.isNotBlank()) genreText else _uiState.value.genre
+        )
+    }
+
     fun saveBook() {
         val state = _uiState.value
         if (state.title.isBlank() || state.author.isBlank()) return

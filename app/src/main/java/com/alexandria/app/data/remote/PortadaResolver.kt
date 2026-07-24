@@ -32,7 +32,7 @@ class PortadaResolver {
     suspend fun buscarCoversOpenLibrary(query: String, maxResults: Int = 20): List<GoogleBookItem> = withContext(Dispatchers.IO) {
         try {
             val encodedQuery = java.net.URLEncoder.encode(query, "UTF-8")
-            val url = "https://openlibrary.org/search.json?q=$encodedQuery&limit=$maxResults"
+            val url = "https://openlibrary.org/search.json?q=$encodedQuery&fields=key,title,author_name,cover_i,first_publish_year,isbn,subject&limit=$maxResults"
             val request = Request.Builder()
                 .url(url)
                 .header("User-Agent", "Alexandria/1.0 (Android Book Tracker)")
@@ -56,6 +56,9 @@ class PortadaResolver {
                 val isbns = doc.optJSONArray("isbn")?.let { arr ->
                     (0 until arr.length()).map { arr.optString(it, "") }.filter { it.isNotBlank() }
                 }
+                val subjects = doc.optJSONArray("subject")?.let { arr ->
+                    (0 until arr.length()).map { arr.optString(it, "") }.filter { it.isNotBlank() }
+                }
 
                 var thumbnail: String? = null
                 var smallThumbnail: String? = null
@@ -76,8 +79,8 @@ class PortadaResolver {
                             smallThumbnail = smallThumbnail,
                             thumbnail = thumbnail
                         ),
-                        categories = null,
-                        industryIdentifiers = null
+                        categories = subjects,
+                        industryIdentifiers = isbns?.map { IndustryIdentifier("isbn_10", it) }
                     )
                 ))
             }
