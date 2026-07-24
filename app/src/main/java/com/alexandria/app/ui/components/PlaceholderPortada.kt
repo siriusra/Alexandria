@@ -72,12 +72,12 @@ fun PlaceholderPortada(
 }
 
 private fun colorFromTitle(title: String): Color {
-    val colors = intArrayOf(
-        0xFF1B5E20, 0xFF0D47A1, 0xFF4A148C, 0xFFBF360C,
-        0xFF006064, 0xFF880E4F, 0xFF1A237E, 0xFF33691E,
-        0xFFE65100, 0xFF01579B, 0xFF311B92, 0xFF827717,
-        0xFF004D40, 0xFFAD1457, 0xFF283593, 0xFF558B2F
+    val colors = listOf(
+        Color(0xFF1B5E20), Color(0xFF0D47A1), Color(0xFF4A148C), Color(0xFFBF360C),
+        Color(0xFF006064), Color(0xFF880E4F), Color(0xFF1A237E), Color(0xFF33691E),
+        Color(0xFFE65100), Color(0xFF01579B), Color(0xFF311B92), Color(0xFF827717),
+        Color(0xFF004D40), Color(0xFFAD1457), Color(0xFF283593), Color(0xFF558B2F)
     )
     val hash = title.hashCode().let { if (it < 0) -it else it }
-    return Color(colors[hash % colors.size])
+    return colors[hash % colors.size]
 }
