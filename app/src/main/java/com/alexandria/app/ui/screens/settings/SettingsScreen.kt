@@ -239,14 +239,14 @@ fun SettingsScreen(
                     Text("Guardar en una ubicación:", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.height(4.dp))
                     OutlinedButton(
-                        onClick = { showExportDialog = false;; safExportLauncher.launch("alexandria_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())}.json") },
+                        onClick = { showExportDialog = false; safExportLauncher.launch("alexandria_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())}.json") },
                         modifier = Modifier.fillMaxWidth()
                     ) { Icon(Icons.Default.FolderOpen, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Guardar como JSON...") }
                     Spacer(modifier = Modifier.height(4.dp))
                     OutlinedButton(
-                        onClick = { showExportDialog = false;; safCsvExportLauncher.launch("alexandria_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())}.csv") },
+                        onClick = { showExportDialog = false; safCsvExportLauncher.launch("alexandria_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())}.csv") },
                         modifier = Modifier.fillMaxWidth()
                     ) { Icon(Icons.Default.FolderOpen, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
@@ -256,7 +256,7 @@ fun SettingsScreen(
                     Text("Compartir:", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.height(4.dp))
                     OutlinedButton(
-                        onClick = { showExportDialog = false;; viewModel.shareJson(context) },
+                        onClick = { showExportDialog = false; viewModel.shareJson(context) },
                         modifier = Modifier.fillMaxWidth()
                     ) { Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
