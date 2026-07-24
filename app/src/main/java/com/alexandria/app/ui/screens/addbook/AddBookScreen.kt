@@ -65,7 +65,13 @@ fun AddBookScreen(
             CoverPicker(
                 currentCoverUrl = uiState.coverUrl,
                 onCoverSelected = { viewModel.onCoverUrlChange(it) },
-                onLocalImageSelected = { viewModel.onCoverUrlChange(it.toString()) }
+                onLocalImageSelected = { viewModel.onCoverUrlChange(it.toString()) },
+                searchResults = uiState.coverSearchResults,
+                isSearching = uiState.isSearchingCover,
+                onSearch = { viewModel.searchCovers(it) },
+                coverProvider = uiState.coverProvider,
+                onProviderChange = { viewModel.onCoverProviderChange(it) },
+                errorMessage = uiState.coverSearchError
             )
 
             OutlinedTextField(
@@ -158,7 +164,7 @@ fun AddBookScreen(
                 value = uiState.isbn,
                 onValueChange = { viewModel.onIsbnChange(it) },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("ISBN (para buscar portada automáticamente)") },
+                label = { Text("ISBN") },
                 singleLine = true
             )
 

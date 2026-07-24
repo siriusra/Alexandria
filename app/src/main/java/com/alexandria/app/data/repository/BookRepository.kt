@@ -3,8 +3,14 @@ package com.alexandria.app.data.repository
 import android.util.Log
 import com.alexandria.app.data.local.BookDao
 import com.alexandria.app.data.local.entity.BookEntity
+import com.alexandria.app.data.remote.CoverService
+import com.alexandria.app.data.remote.GoogleBookItem
+import com.alexandria.app.data.remote.ImageLinks
+import com.alexandria.app.data.remote.IndustryIdentifier
 import com.alexandria.app.data.remote.PortadaResolver
+import com.alexandria.app.data.remote.VolumeInfo
 import com.alexandria.app.domain.model.Book
+import com.alexandria.app.domain.model.CoverProvider
 import com.alexandria.app.domain.model.ReadingStatus
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
@@ -15,6 +21,7 @@ import javax.inject.Singleton
 @Singleton
 class BookRepository @Inject constructor(
     private val bookDao: BookDao,
+    private val coverService: CoverService,
     private val portadaResolver: PortadaResolver
 ) {
     fun getAllBooks(): Flow<List<Book>> {
@@ -80,6 +87,55 @@ class BookRepository @Inject constructor(
 
     suspend fun deleteBookById(bookId: Long) {
         bookDao.deleteBookById(bookId)
+    }
+
+    suspend fun searchCovers(query: String, provider: CoverProvider): List<GoogleBookItem> {
+        return try {
+            when (provider) {
+                CoverProvider.GOOGLE_BOOKS -> {
+                    val trimmedQuery = query.trim()
+                    if (trimmedQuery.isBlank()) return emptyList()
+                    portadaResolver.buscarGoogleBooks(trimmedQuery)
+                }
+                CoverProvider.OPEN_LIBRARY -> {
+                    val trimmedQuery = query.trim()
+                    if (trimmedQuery.isBlank()) return emptyList()
+                    val response = coverService.openLibraryApi.searchBooks(trimmedQuery)
+                    Log.d("BookRepository", "Open Library: found ${response.docs.size} docs for '$trimmedQuery'")
+                    response.docs.mapNotNull { doc ->
+                        val coverId = doc.cover_i ?: return@mapNotNull null
+                        GoogleBookItem(
+                            id = doc.key ?: "",
+                            volumeInfo = VolumeInfo(
+                                title = doc.title,
+                                authors = doc.author_name,
+                                publishedDate = doc.first_publish_year?.toString(),
+                                description = null,
+                                pageCount = null,
+                                imageLinks = ImageLinks(
+                                    smallThumbnail = coverService.getOpenLibraryCoverUrl(coverId),
+                                    thumbnail = coverService.getOpenLibraryCoverUrl(coverId)
+                                ),
+                                categories = null,
+                                industryIdentifiers = doc.isbn?.firstOrNull()?.let { isbn ->
+                                    listOf(
+                                        IndustryIdentifier(
+                                            type = "ISBN_13",
+                                            identifier = isbn
+                                        )
+                                    )
+                                }
+                            )
+                        )
+                    }
+                }
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.e("BookRepository", "Error searching covers for: $query with provider: $provider", e)
+            emptyList()
+        }
     }
 
     private suspend fun autoResolveCover(bookId: Long, book: Book) {

@@ -3,6 +3,7 @@ package com.alexandria.app.data.remote
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlin.math.minOf
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
@@ -25,7 +26,7 @@ class PortadaResolver {
             return@withContext olResult
         }
 
-        val gbResult = runCatching { googleBooks(cleanIsbn, titulo, autor) }.getOrNull()
+        val gbResult = runCatching { googleBooksCover(cleanIsbn, titulo, autor) }.getOrNull()
         if (gbResult != null) {
             Log.d(TAG, "Google Books cover found for '$titulo'")
             return@withContext gbResult
@@ -33,6 +34,61 @@ class PortadaResolver {
 
         Log.d(TAG, "No cover found for '$titulo'")
         null
+    }
+
+    suspend fun buscarGoogleBooks(query: String, maxResults: Int = 20): List<GoogleBookItem> = withContext(Dispatchers.IO) {
+        try {
+            val url = "https://www.googleapis.com/books/v1/volumes?q=$query&maxResults=$maxResults"
+            val request = Request.Builder()
+                .url(url)
+                .header("User-Agent", "Alexandria/1.0 (Android Book Tracker)")
+                .build()
+            val response = client.newCall(request).execute()
+            if (!response.isSuccessful) return@withContext emptyList()
+            val body = response.body?.string() ?: return@withContext emptyList()
+            val json = JSONObject(body)
+            if (!json.has("items")) return@withContext emptyList()
+            val items = json.getJSONArray("items")
+            val results = mutableListOf<GoogleBookItem>()
+            for (i in 0 until minOf(items.length(), maxResults)) {
+                val item = items.getJSONObject(i)
+                val id = item.optString("id", "gb_$i")
+                val vi = item.optJSONObject("volumeInfo") ?: continue
+                val title = vi.optString("title", "")
+                if (title.isBlank()) continue
+                val imgLinks = vi.optJSONObject("imageLinks")
+                var thumbnail: String? = null
+                var smallThumbnail: String? = null
+                if (imgLinks != null) {
+                    thumbnail = imgLinks.optString("thumbnail", "").takeIf { it.isNotBlank() }
+                    smallThumbnail = imgLinks.optString("smallThumbnail", "").takeIf { it.isNotBlank() }
+                }
+                val authors = vi.optJSONArray("authors")?.let { arr ->
+                    (0 until arr.length()).map { arr.optString(it, "") }.filter { it.isNotBlank() }
+                }
+                results.add(GoogleBookItem(
+                    id = id,
+                    volumeInfo = VolumeInfo(
+                        title = title,
+                        authors = authors,
+                        publishedDate = vi.optString("publishedDate", "").takeIf { it.isNotBlank() },
+                        description = vi.optString("description", "").takeIf { it.isNotBlank() },
+                        pageCount = vi.optInt("pageCount", 0).takeIf { it > 0 },
+                        imageLinks = ImageLinks(
+                            smallThumbnail = smallThumbnail?.replace("http://", "https://"),
+                            thumbnail = thumbnail?.replace("http://", "https://")
+                        ),
+                        categories = null,
+                        industryIdentifiers = null
+                    )
+                ))
+            }
+            Log.d(TAG, "Google Books search: found ${results.size} results for '$query'")
+            results
+        } catch (e: Exception) {
+            Log.e(TAG, "Error searching Google Books", e)
+            emptyList()
+        }
     }
 
     private fun openLibrary(isbn: String?): String? {
@@ -53,7 +109,7 @@ class PortadaResolver {
         }
     }
 
-    private fun googleBooks(isbn: String?, titulo: String, autor: String?): String? {
+    private fun googleBooksCover(isbn: String?, titulo: String, autor: String?): String? {
         val query = when {
             !isbn.isNullOrBlank() -> "isbn:$isbn"
             else -> {
