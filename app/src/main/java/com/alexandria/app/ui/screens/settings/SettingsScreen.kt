@@ -1,5 +1,6 @@
 package com.alexandria.app.ui.screens.settings
 
+import android.content.Intent
 import android.os.Environment
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -15,7 +16,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.alexandria.app.BuildConfig
-import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -28,6 +28,7 @@ fun SettingsScreen(
     val context = LocalContext.current
     var showExportDialog by remember { mutableStateOf(false) }
     var showImportDialog by remember { mutableStateOf(false) }
+    var showExportMethodPicker by remember { mutableStateOf<String?>(null) }
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -42,6 +43,22 @@ fun SettingsScreen(
     ) { uri ->
         uri?.let { viewModel.importFromCsv(it, context) }
     }
+
+    val safExportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        uri?.let { viewModel.exportJsonViaSAF(it, context) }
+    }
+
+    val safCsvExportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("text/csv")
+    ) { uri ->
+        uri?.let { viewModel.exportCsvViaSAF(it, context) }
+    }
+
+    val clipboardLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { }
 
     LaunchedEffect(uiState.exportMessage) {
         uiState.exportMessage?.let { message ->
@@ -63,19 +80,13 @@ fun SettingsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(
-                text = "Apariencia",
-                style = MaterialTheme.typography.titleMedium
-            )
+            Text("Apariencia", style = MaterialTheme.typography.titleMedium)
 
-            Card(
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            Card(modifier = Modifier.fillMaxWidth()) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column {
                         Text("Modo oscuro")
@@ -94,14 +105,9 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text(
-                text = "Datos",
-                style = MaterialTheme.typography.titleMedium
-            )
+            Text("Datos", style = MaterialTheme.typography.titleMedium)
 
-            Card(
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            Card(modifier = Modifier.fillMaxWidth()) {
                 Column(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -110,11 +116,7 @@ fun SettingsScreen(
                         onClick = { showExportDialog = true },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.FileDownload,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp)
-                        )
+                        Icon(Icons.Default.FileDownload, contentDescription = null, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Exportar biblioteca")
                     }
@@ -125,11 +127,7 @@ fun SettingsScreen(
                         onClick = { showImportDialog = true },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.FileUpload,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp)
-                        )
+                        Icon(Icons.Default.FileUpload, contentDescription = null, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Importar biblioteca")
                     }
@@ -138,14 +136,9 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text(
-                text = "Actualizaciones",
-                style = MaterialTheme.typography.titleMedium
-            )
+            Text("Actualizaciones", style = MaterialTheme.typography.titleMedium)
 
-            Card(
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            Card(modifier = Modifier.fillMaxWidth()) {
                 Column(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -168,10 +161,7 @@ fun SettingsScreen(
                             enabled = !uiState.isCheckingUpdate && !uiState.isDownloading
                         ) {
                             if (uiState.isCheckingUpdate) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(16.dp),
-                                    strokeWidth = 2.dp
-                                )
+                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                                 Spacer(modifier = Modifier.width(8.dp))
                             }
                             Text("Buscar actualizaciones")
@@ -180,14 +170,12 @@ fun SettingsScreen(
 
                     if (uiState.updateInfo != null) {
                         HorizontalDivider()
-
                         Column {
                             Text(
-                                text = "Nueva versión disponible: v${uiState.updateInfo!!.versionName}",
+                                text = "Nueva versión: v${uiState.updateInfo!!.versionName}",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.primary
                             )
-
                             if (uiState.updateInfo!!.releaseNotes.isNotBlank()) {
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
@@ -197,41 +185,19 @@ fun SettingsScreen(
                                     maxLines = 3
                                 )
                             }
-
                             Spacer(modifier = Modifier.height(8.dp))
-
                             if (uiState.isDownloading) {
                                 Column {
-                                    LinearProgressIndicator(
-                                        progress = { uiState.downloadProgress },
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
+                                    LinearProgressIndicator(progress = { uiState.downloadProgress }, modifier = Modifier.fillMaxWidth())
                                     Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = "Descargando... ${(uiState.downloadProgress * 100).toInt()}%",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                    Text("Descargando... ${(uiState.downloadProgress * 100).toInt()}%", style = MaterialTheme.typography.bodySmall)
                                 }
                             } else {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.End
-                                ) {
-                                    TextButton(
-                                        onClick = { viewModel.dismissUpdate() }
-                                    ) {
-                                        Text("Ignorar")
-                                    }
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                    TextButton(onClick = { viewModel.dismissUpdate() }) { Text("Ignorar") }
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Button(
-                                        onClick = { viewModel.downloadAndInstall(context) }
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.SystemUpdate,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(18.dp)
-                                        )
+                                    Button(onClick = { viewModel.downloadAndInstall(context) }) {
+                                        Icon(Icons.Default.SystemUpdate, contentDescription = null, modifier = Modifier.size(18.dp))
                                         Spacer(modifier = Modifier.width(4.dp))
                                         Text("Actualizar")
                                     }
@@ -241,39 +207,21 @@ fun SettingsScreen(
                     }
 
                     if (uiState.updateError != null && uiState.updateInfo == null) {
-                        Text(
-                            text = uiState.updateError!!,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Text(uiState.updateError!!, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text(
-                text = "Acerca de",
-                style = MaterialTheme.typography.titleMedium
-            )
+            Text("Acerca de", style = MaterialTheme.typography.titleMedium)
 
-            Card(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
-                ) {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp)) {
                     Text("Alexandria")
-                    Text(
-                        text = "Versión ${BuildConfig.VERSION_NAME}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Text("Versión ${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Tu biblioteca virtual personal",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                    Text("Tu biblioteca virtual personal", style = MaterialTheme.typography.bodyMedium)
                 }
             }
         }
@@ -281,46 +229,66 @@ fun SettingsScreen(
 
     if (showExportDialog) {
         AlertDialog(
-            onDismissRequest = { showExportDialog = false },
+            onDismissRequest = { showExportDialog = false; },
             title = { Text("Exportar biblioteca") },
             text = {
                 Column {
-                    Text("Elige el formato de exportación:")
+                    Text("Selecciona el destino:", style = MaterialTheme.typography.bodyMedium)
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-                    val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-
+                    Text("Guardar en una ubicación:", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.height(4.dp))
                     OutlinedButton(
-                        onClick = {
-                            val file = File(downloadsDir, "alexandria_$timestamp.json")
-                            viewModel.exportToJson(file)
-                            showExportDialog = false
-                        },
+                        onClick = { showExportDialog = false;; safExportLauncher.launch("alexandria_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())}.json") },
                         modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("JSON (para reimportar)")
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
+                    ) { Icon(Icons.Default.FolderOpen, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Guardar como JSON...") }
+                    Spacer(modifier = Modifier.height(4.dp))
                     OutlinedButton(
-                        onClick = {
-                            val file = File(downloadsDir, "alexandria_$timestamp.csv")
-                            viewModel.exportToCsv(file)
-                            showExportDialog = false
-                        },
+                        onClick = { showExportDialog = false;; safCsvExportLauncher.launch("alexandria_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())}.csv") },
                         modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("CSV (para Excel/Sheets)")
-                    }
+                    ) { Icon(Icons.Default.FolderOpen, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Guardar como CSV...") }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text("Compartir:", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    OutlinedButton(
+                        onClick = { showExportDialog = false;; viewModel.shareJson(context) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Compartir JSON...") }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    OutlinedButton(
+                        onClick = { showExportDialog = false; viewModel.shareCsv(context) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Compartir CSV...") }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text("Exportación rápida:", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    OutlinedButton(
+                        onClick = { showExportDialog = false; viewModel.exportJsonToDownloads() },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Icon(Icons.Default.SaveAlt, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("JSON a Descargas") }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    OutlinedButton(
+                        onClick = { showExportDialog = false; viewModel.exportCsvToDownloads() },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Icon(Icons.Default.SaveAlt, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("CSV a Descargas") }
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showExportDialog = false }) {
-                    Text("Cancelar")
-                }
+                TextButton(onClick = { showExportDialog = false; }) { Text("Cancelar") }
             }
         )
     }
@@ -331,37 +299,38 @@ fun SettingsScreen(
             title = { Text("Importar biblioteca") },
             text = {
                 Column {
-                    Text("Selecciona el archivo a importar:")
+                    Text("Selecciona el origen:", style = MaterialTheme.typography.bodyMedium)
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                    Spacer(modifier = Modifier.height(16.dp))
-
+                    Text("Desde archivo:", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.height(4.dp))
                     OutlinedButton(
-                        onClick = {
-                            jsonImportLauncher.launch(arrayOf("application/json", "text/plain"))
-                            showImportDialog = false
-                        },
+                        onClick = { jsonImportLauncher.launch(arrayOf("application/json", "text/plain")); showImportDialog = false },
                         modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("JSON (desde Alexandria)")
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
+                    ) { Icon(Icons.Default.FileOpen, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Importar JSON (desde Alexandria)") }
+                    Spacer(modifier = Modifier.height(4.dp))
                     OutlinedButton(
-                        onClick = {
-                            csvImportLauncher.launch(arrayOf("text/csv", "text/comma-separated-values", "text/plain"))
-                            showImportDialog = false
-                        },
+                        onClick = { csvImportLauncher.launch(arrayOf("text/csv", "text/comma-separated-values", "text/plain")); showImportDialog = false },
                         modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("CSV (desde Excel/Sheets)")
-                    }
+                    ) { Icon(Icons.Default.FileOpen, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Importar CSV (desde Excel)") }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text("Desde portapapeles:", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    OutlinedButton(
+                        onClick = { showImportDialog = false; viewModel.importFromClipboard(context) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Icon(Icons.Default.ContentPaste, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Pegar JSON del portapapeles") }
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showImportDialog = false }) {
-                    Text("Cancelar")
-                }
+                TextButton(onClick = { showImportDialog = false }) { Text("Cancelar") }
             }
         )
     }
