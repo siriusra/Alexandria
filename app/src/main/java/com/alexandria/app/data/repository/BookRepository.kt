@@ -3,11 +3,8 @@ package com.alexandria.app.data.repository
 import android.util.Log
 import com.alexandria.app.data.local.BookDao
 import com.alexandria.app.data.local.entity.BookEntity
-import com.alexandria.app.data.remote.CoverService
-import com.alexandria.app.data.remote.DuckDuckGoCoverService
-import com.alexandria.app.data.remote.GoogleBookItem
+import com.alexandria.app.data.remote.PortadaResolver
 import com.alexandria.app.domain.model.Book
-import com.alexandria.app.domain.model.CoverProvider
 import com.alexandria.app.domain.model.ReadingStatus
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
@@ -18,8 +15,7 @@ import javax.inject.Singleton
 @Singleton
 class BookRepository @Inject constructor(
     private val bookDao: BookDao,
-    private val coverService: CoverService,
-    private val duckDuckGoService: DuckDuckGoCoverService
+    private val portadaResolver: PortadaResolver
 ) {
     fun getAllBooks(): Flow<List<Book>> {
         return bookDao.getAllBooks().map { entities ->
@@ -66,11 +62,16 @@ class BookRepository @Inject constructor(
     }
 
     suspend fun addBook(book: Book): Long {
-        return bookDao.insertBook(book.toEntity())
+        val id = bookDao.insertBook(book.toEntity())
+        autoResolveCover(id, book)
+        return id
     }
 
     suspend fun updateBook(book: Book) {
         bookDao.updateBook(book.toEntity())
+        if (book.coverUrl == null) {
+            autoResolveCover(book.id, book)
+        }
     }
 
     suspend fun deleteBook(book: Book) {
@@ -81,52 +82,21 @@ class BookRepository @Inject constructor(
         bookDao.deleteBookById(bookId)
     }
 
-    suspend fun searchCovers(query: String, provider: CoverProvider): List<GoogleBookItem> {
-        return try {
-            when (provider) {
-                CoverProvider.WEB_SEARCH -> {
-                    val trimmedQuery = query.trim()
-                    if (trimmedQuery.isBlank()) return emptyList()
-                    duckDuckGoService.searchCovers("$trimmedQuery book cover")
-                }
-                CoverProvider.OPEN_LIBRARY -> {
-                    val trimmedQuery = query.trim()
-                    if (trimmedQuery.isBlank()) return emptyList()
-                    val response = coverService.openLibraryApi.searchBooks(trimmedQuery)
-                    Log.d("BookRepository", "Open Library: found ${response.docs.size} docs for '$trimmedQuery'")
-                    response.docs.mapNotNull { doc ->
-                        val coverId = doc.cover_i ?: return@mapNotNull null
-                        GoogleBookItem(
-                            id = doc.key ?: "",
-                            volumeInfo = com.alexandria.app.data.remote.VolumeInfo(
-                                title = doc.title,
-                                authors = doc.author_name,
-                                publishedDate = doc.first_publish_year?.toString(),
-                                description = null,
-                                pageCount = null,
-                                imageLinks = com.alexandria.app.data.remote.ImageLinks(
-                                    smallThumbnail = coverService.getOpenLibraryCoverUrl(coverId),
-                                    thumbnail = coverService.getOpenLibraryCoverUrl(coverId)
-                                ),
-                                categories = null,
-                                industryIdentifiers = doc.isbn?.firstOrNull()?.let { isbn ->
-                                    listOf(
-                                        com.alexandria.app.data.remote.IndustryIdentifier(
-                                            type = "ISBN_13",
-                                            identifier = isbn
-                                        )
-                                    )
-                                }
-                            )
-                        )
-                    }
-                }
+    private suspend fun autoResolveCover(bookId: Long, book: Book) {
+        try {
+            val url = portadaResolver.resolver(
+                isbn = book.isbn,
+                titulo = book.title,
+                autor = book.author
+            )
+            if (url != null) {
+                bookDao.updateCoverUrl(bookId, url)
+                Log.d(TAG, "Cover resolved for '${book.title}': $url")
             }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            Log.e("BookRepository", "Error searching covers for: $query with provider: $provider", e)
-            emptyList()
+            Log.e(TAG, "Error resolving cover for '${book.title}'", e)
         }
     }
 
@@ -170,5 +140,9 @@ class BookRepository @Inject constructor(
             dateAdded = dateAdded,
             dateFinished = dateFinished
         )
+    }
+
+    companion object {
+        private const val TAG = "BookRepository"
     }
 }

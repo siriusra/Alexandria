@@ -5,9 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.alexandria.app.domain.model.Book
-import com.alexandria.app.domain.model.CoverProvider
 import com.alexandria.app.domain.model.ReadingStatus
-import com.alexandria.app.data.remote.GoogleBookItem
 import com.alexandria.app.data.repository.BookRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -28,10 +26,6 @@ data class AddBookUiState(
     val pageCount: String = "",
     val isbn: String = "",
     val isSaving: Boolean = false,
-    val isSearchingCover: Boolean = false,
-    val coverSearchResults: List<GoogleBookItem> = emptyList(),
-    val coverSearchError: String? = null,
-    val coverProvider: CoverProvider = CoverProvider.WEB_SEARCH,
     val savedSuccessfully: Boolean = false,
     val isEditing: Boolean = false
 )
@@ -121,37 +115,6 @@ class AddBookViewModel @Inject constructor(
 
     fun onIsbnChange(value: String) {
         _uiState.value = _uiState.value.copy(isbn = value)
-    }
-
-    fun onCoverProviderChange(provider: CoverProvider) {
-        _uiState.value = _uiState.value.copy(coverProvider = provider)
-    }
-
-    fun searchCovers(query: String) {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(
-                isSearchingCover = true,
-                coverSearchError = null
-            )
-            try {
-                val results = repository.searchCovers(query, _uiState.value.coverProvider)
-                _uiState.value = _uiState.value.copy(
-                    coverSearchResults = results,
-                    isSearchingCover = false,
-                    coverSearchError = if (results.isEmpty()) "No se encontraron portadas" else null
-                )
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    coverSearchResults = emptyList(),
-                    isSearchingCover = false,
-                    coverSearchError = "Error de búsqueda: ${e.message}"
-                )
-            }
-        }
-    }
-
-    fun clearSearchError() {
-        _uiState.value = _uiState.value.copy(coverSearchError = null)
     }
 
     fun saveBook() {

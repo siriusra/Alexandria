@@ -3,7 +3,7 @@ package com.alexandria.app.di
 import android.content.Context
 import com.alexandria.app.data.local.AlexandriaDatabase
 import com.alexandria.app.data.local.BookDao
-import com.alexandria.app.data.remote.DuckDuckGoCoverService
+import com.alexandria.app.data.remote.PortadaResolver
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -29,7 +29,7 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideDuckDuckGoCoverService(): DuckDuckGoCoverService {
-        return DuckDuckGoCoverService()
+    fun providePortadaResolver(): PortadaResolver {
+        return PortadaResolver()
     }
 }

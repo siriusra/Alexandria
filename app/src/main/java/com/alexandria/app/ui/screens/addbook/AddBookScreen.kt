@@ -28,14 +28,6 @@ fun AddBookScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    val galleryLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let {
-            viewModel.onCoverUrlChange(it.toString())
-        }
-    }
-
     LaunchedEffect(uiState.savedSuccessfully) {
         if (uiState.savedSuccessfully) {
             onNavigateBack()
@@ -73,13 +65,7 @@ fun AddBookScreen(
             CoverPicker(
                 currentCoverUrl = uiState.coverUrl,
                 onCoverSelected = { viewModel.onCoverUrlChange(it) },
-                onLocalImageSelected = { viewModel.onCoverUrlChange(it.toString()) },
-                searchResults = uiState.coverSearchResults,
-                isSearching = uiState.isSearchingCover,
-                onSearch = { viewModel.searchCovers(it) },
-                coverProvider = uiState.coverProvider,
-                onProviderChange = { viewModel.onCoverProviderChange(it) },
-                errorMessage = uiState.coverSearchError
+                onLocalImageSelected = { viewModel.onCoverUrlChange(it.toString()) }
             )
 
             OutlinedTextField(
@@ -172,7 +158,7 @@ fun AddBookScreen(
                 value = uiState.isbn,
                 onValueChange = { viewModel.onIsbnChange(it) },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("ISBN") },
+                label = { Text("ISBN (para buscar portada automáticamente)") },
                 singleLine = true
             )
 

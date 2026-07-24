@@ -16,6 +16,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.alexandria.app.domain.model.ReadingStatus
+import com.alexandria.app.ui.components.PlaceholderPortada
 import com.alexandria.app.ui.components.ReadingStatusBadge
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -68,16 +69,11 @@ fun BookDetailScreen(
                             contentScale = ContentScale.Crop
                         )
                     } else {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = book.title.take(2).uppercase(),
-                                style = MaterialTheme.typography.displayLarge,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
+                        PlaceholderPortada(
+                            titulo = book.title,
+                            autor = book.author,
+                            modifier = Modifier.fillMaxSize()
+                        )
                     }
                 }
 
