@@ -25,7 +25,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.zIndex
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -207,8 +206,7 @@ fun SagaCarouselCard(
                         AnimatedDeckCard(
                             book = book,
                             index = index,
-                            onClick = { onBookClick(book.id) },
-                            modifier = Modifier.zIndex(index.toFloat())
+                            onClick = { onBookClick(book.id) }
                         )
                     }
                 }
