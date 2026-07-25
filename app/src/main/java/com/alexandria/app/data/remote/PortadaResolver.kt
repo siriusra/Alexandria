@@ -115,10 +115,11 @@ class PortadaResolver {
         }
     }
 
-    suspend fun fetchDescriptionBySearch(title: String, author: String): String? = withContext(Dispatchers.IO) {
+    suspend fun fetchDescriptionBySearch(title: String, author: String, lang: String? = null): String? = withContext(Dispatchers.IO) {
         try {
             val query = java.net.URLEncoder.encode("$title ${author.take(30)}", "UTF-8")
-            val searchUrl = "https://openlibrary.org/search.json?q=$query&fields=key&limit=5"
+            var searchUrl = "https://openlibrary.org/search.json?q=$query&fields=key&limit=10"
+            if (lang != null) searchUrl += "&language=$lang"
             val searchReq = Request.Builder()
                 .url(searchUrl)
                 .header("User-Agent", "Alexandria/1.0 (Android Book Tracker)")

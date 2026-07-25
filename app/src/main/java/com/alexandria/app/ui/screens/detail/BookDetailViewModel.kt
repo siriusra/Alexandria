@@ -61,7 +61,11 @@ class BookDetailViewModel @Inject constructor(
         }
 
         if (desc == null) {
-            desc = portadaResolver.fetchDescriptionBySearch(book.title, book.author)
+            desc = portadaResolver.fetchDescriptionBySearch(book.title, book.author, lang = "spa")
+        }
+
+        if (desc == null) {
+            desc = portadaResolver.fetchDescriptionBySearch(book.title, book.author, lang = null)
         }
 
         _uiState.value = _uiState.value.copy(

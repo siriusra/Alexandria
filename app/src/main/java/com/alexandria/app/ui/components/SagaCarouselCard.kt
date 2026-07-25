@@ -188,26 +188,33 @@ fun SagaCarouselCard(
                 }
             }
 
+            var expandCount by remember { mutableIntStateOf(0) }
+            LaunchedEffect(isExpanded) {
+                if (isExpanded && expandCount < Int.MAX_VALUE) expandCount++
+            }
+
             AnimatedVisibility(
                 visible = isExpanded,
                 enter = fadeIn() + expandVertically(),
                 exit = fadeOut() + shrinkVertically()
             ) {
-                val scrollState = rememberScrollState()
+                key(expandCount) {
+                    val scrollState = rememberScrollState()
 
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(scrollState)
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy((-20).dp)
-                ) {
-                    books.forEachIndexed { index, book ->
-                        AnimatedDeckCard(
-                            book = book,
-                            index = index,
-                            onClick = { onBookClick(book.id) }
-                        )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(scrollState)
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy((-20).dp)
+                    ) {
+                        books.forEachIndexed { index, book ->
+                            AnimatedDeckCard(
+                                book = book,
+                                index = index,
+                                onClick = { onBookClick(book.id) }
+                            )
+                        }
                     }
                 }
             }
