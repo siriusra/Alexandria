@@ -1,14 +1,14 @@
 package com.alexandria.app.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.core.*
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
@@ -21,6 +21,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -29,6 +30,8 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.alexandria.app.domain.model.Book
 import com.alexandria.app.domain.model.ReadingStatus
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun SagaCarouselCard(
@@ -185,25 +188,24 @@ fun SagaCarouselCard(
 
             AnimatedVisibility(
                 visible = isExpanded,
-                enter = expandVertically(),
-                exit = shrinkVertically()
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
             ) {
-                val rows = (books.size + 1) / 2
-                val gridHeight = rows * 210 + (rows - 1).coerceAtLeast(0) * 8 + 8
+                val scrollState = rememberScrollState()
 
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(gridHeight.dp)
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                        .horizontalScroll(scrollState)
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy((-20).dp)
                 ) {
-                    items(books) { book ->
-                        MiniBookCard(
+                    books.forEachIndexed { index, book ->
+                        AnimatedDeckCard(
                             book = book,
-                            onClick = { onBookClick(book.id) }
+                            index = index,
+                            onClick = { onBookClick(book.id) },
+                            modifier = Modifier.zIndex(index.toFloat())
                         )
                     }
                 }
@@ -213,60 +215,85 @@ fun SagaCarouselCard(
 }
 
 @Composable
-private fun MiniBookCard(
+private fun AnimatedDeckCard(
     book: Book,
+    index: Int,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val scale = remember { Animatable(0.3f) }
+    val offsetY = remember { Animatable(100f) }
+    val alpha = remember { Animatable(0f) }
+    val rotation = remember { Animatable(0f) }
+
+    LaunchedEffect(Unit) {
+        delay(index * 70L)
+        launch { scale.animateTo(1f, spring(dampingRatio = 0.5f, stiffness = 300f)) }
+        launch { offsetY.animateTo(0f, spring(dampingRatio = 0.6f, stiffness = 200f)) }
+        launch { alpha.animateTo(1f, tween(200)) }
+        val targetRotation = if (index % 2 == 0) -2f else 2f
+        launch { rotation.animateTo(targetRotation, spring(dampingRatio = 0.7f, stiffness = 200f)) }
+    }
+
+    val coverModel = book.coverUrl ?: book.coverLocalPath
+
     Card(
         modifier = modifier
-            .fillMaxWidth()
+            .width(130.dp)
+            .graphicsLayer {
+                scaleX = scale.value
+                scaleY = scale.value
+                translationY = offsetY.value
+                alpha = alpha.value
+                rotationZ = rotation.value
+            }
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
-        Column {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(0.68f)
+        ) {
+            if (coverModel != null) {
+                AsyncImage(
+                    model = coverModel,
+                    contentDescription = book.title,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                PlaceholderPortada(
+                    titulo = book.title,
+                    autor = book.author,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(120.dp)
-                    .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
-            ) {
-                if (book.coverUrl != null || book.coverLocalPath != null) {
-                    AsyncImage(
-                        model = book.coverUrl ?: book.coverLocalPath,
-                        contentDescription = book.title,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+                    .height(48.dp)
+                    .align(Alignment.BottomCenter)
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.55f))
+                        )
                     )
-                } else {
-                    PlaceholderPortada(
-                        titulo = book.title,
-                        autor = book.author,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-            }
+            )
 
-            Column(
-                modifier = Modifier.padding(6.dp)
-            ) {
-                Text(
-                    text = book.title,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = book.author,
-                    fontSize = 10.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
+            Text(
+                text = book.title,
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(horizontal = 6.dp, vertical = 4.dp),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
