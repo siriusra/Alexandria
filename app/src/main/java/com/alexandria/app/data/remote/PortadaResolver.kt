@@ -145,8 +145,9 @@ class PortadaResolver {
 
     suspend fun fetchDescriptionFromWikipedia(title: String, author: String): String? = withContext(Dispatchers.IO) {
         try {
+            if (title.isBlank()) return@withContext null
             val query = java.net.URLEncoder.encode("$title $author", "UTF-8")
-            val searchUrl = "https://api.wikimedia.org/core/v1/wikipedia/es/search/page?q=$query&limit=3"
+            val searchUrl = "https://api.wikimedia.org/core/v1/wikipedia/es/search/page?q=$query&limit=5"
             val searchReq = Request.Builder()
                 .url(searchUrl)
                 .header("User-Agent", "Alexandria/1.0 (Android Book Tracker)")
@@ -158,10 +159,26 @@ class PortadaResolver {
             val pages = searchJson.optJSONArray("pages") ?: return@withContext null
             if (pages.length() == 0) return@withContext null
 
-            val firstPage = pages.getJSONObject(0)
-            val pageKey = firstPage.optString("key", null) ?: return@withContext null
+            val lowerTitle = title.lowercase().trim()
+            var bestKey: String? = null
 
-            val encodedKey = java.net.URLEncoder.encode(pageKey, "UTF-8").replace("+", "%20")
+            for (i in 0 until pages.length()) {
+                val page = pages.getJSONObject(i)
+                val pageTitle = page.optString("title", "").lowercase().trim()
+                if (pageTitle == lowerTitle) {
+                    bestKey = page.optString("key", null)
+                    break
+                }
+                if (bestKey == null && pageTitle.contains(lowerTitle)) {
+                    bestKey = page.optString("key", null)
+                }
+            }
+            if (bestKey == null) {
+                bestKey = pages.getJSONObject(0).optString("key", null)
+            }
+            if (bestKey == null) return@withContext null
+
+            val encodedKey = java.net.URLEncoder.encode(bestKey, "UTF-8").replace("+", "%20")
             val summaryUrl = "https://es.wikipedia.org/api/rest_v1/page/summary/$encodedKey"
             val summaryReq = Request.Builder()
                 .url(summaryUrl)
