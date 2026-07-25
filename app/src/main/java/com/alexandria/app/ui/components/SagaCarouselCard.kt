@@ -2,8 +2,10 @@ package com.alexandria.app.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.*
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -23,6 +25,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.zIndex
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -221,18 +224,18 @@ private fun AnimatedDeckCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val scale = remember { Animatable(0.3f) }
-    val offsetY = remember { Animatable(100f) }
-    val alpha = remember { Animatable(0f) }
-    val rotation = remember { Animatable(0f) }
+    val animScale = remember { Animatable(0.3f) }
+    val animOffsetY = remember { Animatable(100f) }
+    val animAlpha = remember { Animatable(0f) }
+    val animRotation = remember { Animatable(0f) }
 
     LaunchedEffect(Unit) {
         delay(index * 70L)
-        launch { scale.animateTo(1f, spring(dampingRatio = 0.5f, stiffness = 300f)) }
-        launch { offsetY.animateTo(0f, spring(dampingRatio = 0.6f, stiffness = 200f)) }
-        launch { alpha.animateTo(1f, tween(200)) }
+        launch { animScale.animateTo(1f, spring(dampingRatio = 0.5f, stiffness = 300f)) }
+        launch { animOffsetY.animateTo(0f, spring(dampingRatio = 0.6f, stiffness = 200f)) }
+        launch { animAlpha.animateTo(1f, tween(200)) }
         val targetRotation = if (index % 2 == 0) -2f else 2f
-        launch { rotation.animateTo(targetRotation, spring(dampingRatio = 0.7f, stiffness = 200f)) }
+        launch { animRotation.animateTo(targetRotation, spring(dampingRatio = 0.7f, stiffness = 200f)) }
     }
 
     val coverModel = book.coverUrl ?: book.coverLocalPath
@@ -241,11 +244,11 @@ private fun AnimatedDeckCard(
         modifier = modifier
             .width(130.dp)
             .graphicsLayer {
-                scaleX = scale.value
-                scaleY = scale.value
-                translationY = offsetY.value
-                alpha = alpha.value
-                rotationZ = rotation.value
+                scaleX = animScale.value
+                scaleY = animScale.value
+                translationY = animOffsetY.value
+                alpha = animAlpha.value
+                rotationZ = animRotation.value
             }
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
