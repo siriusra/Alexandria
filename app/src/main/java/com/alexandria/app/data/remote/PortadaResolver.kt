@@ -6,6 +6,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
+import org.jsoup.Jsoup
 import java.util.concurrent.TimeUnit
 
 class PortadaResolver {
@@ -212,6 +213,71 @@ class PortadaResolver {
             null
         } catch (e: Exception) {
             Log.e(TAG, "Error fetching Wikipedia description for '$title'", e)
+            null
+        }
+    }
+
+    suspend fun fetchDescriptionFromCasaDelLibro(title: String, author: String): String? = withContext(Dispatchers.IO) {
+        try {
+            if (title.isBlank()) return@withContext null
+            val query = java.net.URLEncoder.encode("$title $author", "UTF-8")
+            val searchUrl = "https://www.casadellibro.com/busqueda?q=$query"
+
+            val webClient = client.newBuilder().followRedirects(true).build()
+            val searchReq = Request.Builder()
+                .url(searchUrl)
+                .header("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36")
+                .build()
+            val searchRes = webClient.newCall(searchReq).execute()
+            if (!searchRes.isSuccessful) return@withContext null
+            val html = searchRes.body?.string() ?: return@withContext null
+            val doc = Jsoup.parse(html)
+
+            val lowerTitle = title.lowercase().trim()
+            var bookUrl: String? = null
+            for (link in doc.select("a[href]")) {
+                val href = link.attr("href")
+                val text = link.text().lowercase().trim()
+                if (href.contains("/libro-") && (text == lowerTitle || text.contains(lowerTitle))) {
+                    bookUrl = if (href.startsWith("/")) "https://www.casadellibro.com$href" else href
+                    break
+                }
+            }
+            if (bookUrl == null) {
+                val first = doc.selectFirst("a[href*=/libro-]")
+                if (first != null) {
+                    val href = first.attr("href")
+                    bookUrl = if (href.startsWith("/")) "https://www.casadellibro.com$href" else href
+                }
+            }
+            if (bookUrl == null) return@withContext null
+
+            val prodReq = Request.Builder()
+                .url(bookUrl)
+                .header("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36")
+                .build()
+            val prodRes = webClient.newCall(prodReq).execute()
+            if (!prodRes.isSuccessful) return@withContext null
+            val prodHtml = prodRes.body?.string() ?: return@withContext null
+            val prodDoc = Jsoup.parse(prodHtml)
+
+            for (selector in listOf(
+                "meta[property=og:description]",
+                "meta[name=description]",
+                "[itemprop=description]",
+                ".product-description",
+                ".descripcion",
+                ".sinopsis"
+            )) {
+                val el = prodDoc.selectFirst(selector)
+                if (el != null) {
+                    val text = if (el.tagName() == "meta") el.attr("content") else el.text()
+                    if (text.isNotBlank()) return@withContext text
+                }
+            }
+            null
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching Casa del Libro description for '$title'", e)
             null
         }
     }

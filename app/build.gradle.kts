@@ -21,7 +21,7 @@ android {
         applicationId = "com.alexandria.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 29
+        versionCode = 30
         versionName = "1.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -110,6 +110,9 @@ dependencies {
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+
+    // Jsoup (HTML parsing)
+    implementation("org.jsoup:jsoup:1.17.2")
 
     // Coil (image loading)
     implementation("io.coil-kt:coil-compose:2.5.0")
