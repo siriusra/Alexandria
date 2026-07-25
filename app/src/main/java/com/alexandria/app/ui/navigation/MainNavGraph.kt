@@ -20,6 +20,7 @@ import com.alexandria.app.ui.screens.home.HomeScreen
 import com.alexandria.app.ui.screens.library.LibraryScreen
 import com.alexandria.app.ui.screens.search.SearchScreen
 import com.alexandria.app.ui.screens.settings.SettingsScreen
+import com.alexandria.app.ui.screens.update.UpdateScreen
 
 @Composable
 fun MainNavGraph() {
@@ -66,7 +67,19 @@ fun MainNavGraph() {
             }
 
             composable(Screen.Settings.route) {
-                SettingsScreen()
+                SettingsScreen(
+                    onNavigateToUpdate = {
+                        navController.navigate(Screen.Update.route)
+                    }
+                )
+            }
+
+            composable(Screen.Update.route) {
+                UpdateScreen(
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    }
+                )
             }
 
             composable(

@@ -39,7 +39,7 @@ fun CarouselCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
+                    .aspectRatio(0.68f)
                     .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
             ) {
                 if (book.coverUrl != null || book.coverLocalPath != null) {

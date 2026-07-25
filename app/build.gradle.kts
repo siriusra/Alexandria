@@ -21,7 +21,7 @@ android {
         applicationId = "com.alexandria.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 17
+        versionCode = 18
         versionName = "1.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

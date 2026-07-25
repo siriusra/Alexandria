@@ -28,6 +28,7 @@ import java.util.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
+    onNavigateToUpdate: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -185,7 +186,7 @@ fun SettingsScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -193,211 +194,41 @@ fun SettingsScreen(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant
                 )
             ) {
-                Column(
-                    modifier = Modifier.padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onNavigateToUpdate() }
+                        .padding(20.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.SystemUpdate,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(28.dp)
-                        )
-                        Column {
-                            Text(
-                                "Actualizaciones",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-                            )
-                            Text(
-                                text = "Versión actual: v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-
-                    Button(
-                        onClick = { viewModel.checkForUpdate() },
-                        enabled = !uiState.isCheckingUpdate && !uiState.isDownloading,
-                        modifier = Modifier.fillMaxWidth().height(48.dp)
-                    ) {
-                        if (uiState.isCheckingUpdate) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.onPrimary
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                        } else {
-                            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(20.dp))
-                            Spacer(modifier = Modifier.width(12.dp))
-                        }
+                    Icon(
+                        Icons.Default.SystemUpdate,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            if (uiState.isCheckingUpdate) "Buscando..." else "Buscar actualizaciones",
-                            style = MaterialTheme.typography.bodyLarge
+                            "Actualizaciones",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                        )
+                        Text(
+                            "Versión actual: v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-
-                    if (uiState.isCheckingUpdate) {
-                        LinearProgressIndicator(
-                            modifier = Modifier.fillMaxWidth().height(4.dp)
-                        )
-                    }
-
-                    if (uiState.updateError != null && uiState.updateInfo == null) {
-                        Card(
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer
-                            ),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.Warning,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.error,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                    Column {
-                                        Text(
-                                            "Error",
-                                            style = MaterialTheme.typography.titleSmall,
-                                            color = MaterialTheme.colorScheme.onErrorContainer
-                                        )
-                                        Text(
-                                            text = uiState.updateError!!,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onErrorContainer
-                                        )
-                                    }
-                                }
-                                Spacer(modifier = Modifier.height(12.dp))
-                                OutlinedButton(
-                                    onClick = { viewModel.checkForUpdate() },
-                                    enabled = !uiState.isCheckingUpdate,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Reintentar")
-                                }
-                            }
-                        }
-                    }
-
-                    if (uiState.updateInfo != null) {
-                        HorizontalDivider(
-                            color = MaterialTheme.colorScheme.outlineVariant
-                        )
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Surface(
-                                color = MaterialTheme.colorScheme.primaryContainer,
-                                shape = MaterialTheme.shapes.medium,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(16.dp)
-                                ) {
-                                    Text(
-                                        text = "¡Nueva versión disponible!",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = "v${uiState.updateInfo!!.versionName}",
-                                        style = MaterialTheme.typography.headlineMedium,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                                    )
-                                    if (uiState.updateInfo!!.releaseNotes.isNotBlank()) {
-                                        Spacer(modifier = Modifier.height(12.dp))
-                                        HorizontalDivider(
-                                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f)
-                                        )
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        Text(
-                                            text = "Notas de la versión:",
-                                            style = MaterialTheme.typography.labelLarge,
-                                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                                        )
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text(
-                                            text = uiState.updateInfo!!.releaseNotes,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
-                                            maxLines = 6
-                                        )
-                                    }
-                                }
-                            }
-
-                            if (uiState.isDownloading) {
-                                Card(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.secondaryContainer
-                                    )
-                                ) {
-                                    Column(
-                                        modifier = Modifier.padding(16.dp),
-                                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        Text(
-                                            "Descargando actualización...",
-                                            style = MaterialTheme.typography.titleSmall,
-                                            fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
-                                        )
-                                        LinearProgressIndicator(
-                                            progress = { uiState.downloadProgress },
-                                            modifier = Modifier.fillMaxWidth().height(12.dp)
-                                        )
-                                        Text(
-                                            "${(uiState.downloadProgress * 100).toInt()}% completado",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                }
-                            } else {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    OutlinedButton(
-                                        onClick = { viewModel.dismissUpdate() },
-                                        modifier = Modifier.weight(1f).height(48.dp)
-                                    ) {
-                                        Text("Ignorar")
-                                    }
-                                    Button(
-                                        onClick = { viewModel.downloadAndInstall(context) },
-                                        modifier = Modifier.weight(1f).height(48.dp)
-                                    ) {
-                                        Icon(Icons.Default.SystemUpdate, contentDescription = null, modifier = Modifier.size(20.dp))
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Actualizar")
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    Icon(
+                        Icons.Default.ChevronRight,
+                        contentDescription = "Ir a actualizaciones",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Text("Acerca de", style = MaterialTheme.typography.titleMedium)
 
