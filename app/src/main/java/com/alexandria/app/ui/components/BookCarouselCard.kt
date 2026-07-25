@@ -55,7 +55,7 @@ fun CarouselCard(
         modifier = modifier
             .width(340.dp)
             .shadow(
-                if (book.status == ReadingStatus.READING) 8.dp + readingScale * 12.dp else 16.dp,
+                if (book.status == ReadingStatus.READING) 8.dp + 12.dp * readingScale else 16.dp,
                 RoundedCornerShape(28.dp),
                 ambientColor = if (book.status == ReadingStatus.READING) statusColor.copy(alpha = readingScale * 0.3f) else Color.Black.copy(alpha = 0.15f),
                 spotColor = if (book.status == ReadingStatus.READING) statusColor.copy(alpha = readingScale * 0.4f) else Color.Black.copy(alpha = 0.25f)

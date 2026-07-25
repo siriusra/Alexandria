@@ -49,9 +49,6 @@ fun MainNavGraph() {
 
             composable(Screen.Library.route) {
                 LibraryScreen(
-                    onNavigateToAddBook = {
-                        navController.navigate(Screen.AddBook.route)
-                    },
                     onNavigateToBookDetail = { bookId ->
                         navController.navigate(Screen.BookDetail.createRoute(bookId))
                     }

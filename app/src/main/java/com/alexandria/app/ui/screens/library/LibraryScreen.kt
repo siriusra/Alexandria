@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,7 +21,6 @@ import com.alexandria.app.ui.components.ViewToggle
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LibraryScreen(
-    onNavigateToAddBook: () -> Unit,
     onNavigateToBookDetail: (Long) -> Unit,
     viewModel: LibraryViewModel = hiltViewModel()
 ) {
@@ -64,13 +62,6 @@ fun LibraryScreen(
                     }
                 }
             )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = onNavigateToAddBook
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Añadir libro")
-            }
         }
     ) { paddingValues ->
         Column(

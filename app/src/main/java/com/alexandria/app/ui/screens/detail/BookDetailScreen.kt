@@ -131,22 +131,28 @@ fun BookDetailScreen(
                         style = MaterialTheme.typography.bodyLarge
                     )
 
-                    val description = uiState.description
-                    if (description != null || uiState.isDescriptionLoading) {
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "Descripción",
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        if (uiState.isDescriptionLoading && description == null) {
-                            Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Descripción",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    when {
+                        uiState.isDescriptionLoading -> {
                             LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                        } else if (description != null) {
-                            Spacer(modifier = Modifier.height(4.dp))
+                        }
+                        uiState.description != null -> {
                             Text(
-                                text = description,
+                                text = uiState.description!!,
                                 style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                        else -> {
+                            Text(
+                                text = "No hay sinopsis disponible para este libro",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
