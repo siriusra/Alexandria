@@ -53,10 +53,17 @@ class BookDetailViewModel @Inject constructor(
     }
 
     private suspend fun fetchDescription(book: Book) {
-        val isbn = book.isbn
-        if (isbn.isNullOrBlank()) return
         _uiState.value = _uiState.value.copy(isDescriptionLoading = true)
-        val desc = portadaResolver.fetchDescriptionFromIsbn(isbn)
+        var desc: String? = null
+
+        if (!book.isbn.isNullOrBlank()) {
+            desc = portadaResolver.fetchDescriptionFromIsbn(book.isbn)
+        }
+
+        if (desc == null) {
+            desc = portadaResolver.fetchDescriptionBySearch(book.title, book.author)
+        }
+
         _uiState.value = _uiState.value.copy(
             description = desc,
             isDescriptionLoading = false

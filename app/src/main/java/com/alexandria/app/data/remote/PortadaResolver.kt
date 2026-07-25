@@ -115,6 +115,33 @@ class PortadaResolver {
         }
     }
 
+    suspend fun fetchDescriptionBySearch(title: String, author: String): String? = withContext(Dispatchers.IO) {
+        try {
+            val query = java.net.URLEncoder.encode("$title ${author.take(30)}", "UTF-8")
+            val searchUrl = "https://openlibrary.org/search.json?q=$query&fields=key&limit=5"
+            val searchReq = Request.Builder()
+                .url(searchUrl)
+                .header("User-Agent", "Alexandria/1.0 (Android Book Tracker)")
+                .build()
+            val searchRes = client.newCall(searchReq).execute()
+            if (!searchRes.isSuccessful) return@withContext null
+            val body = searchRes.body?.string() ?: return@withContext null
+            val json = JSONObject(body)
+            val docs = json.optJSONArray("docs") ?: return@withContext null
+            for (i in 0 until docs.length()) {
+                val key = docs.getJSONObject(i).optString("key", "")
+                if (key.startsWith("/works/")) {
+                    val desc = fetchDescription(key)
+                    if (desc != null) return@withContext desc
+                }
+            }
+            null
+        } catch (e: Exception) {
+            Log.e(TAG, "Error searching description for '$title'", e)
+            null
+        }
+    }
+
     suspend fun fetchDescriptionFromIsbn(isbn: String): String? = withContext(Dispatchers.IO) {
         try {
             val url = "https://openlibrary.org/isbn/$isbn.json"
