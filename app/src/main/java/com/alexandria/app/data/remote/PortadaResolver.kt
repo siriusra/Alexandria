@@ -143,6 +143,44 @@ class PortadaResolver {
         }
     }
 
+    suspend fun fetchDescriptionFromWikipedia(title: String, author: String): String? = withContext(Dispatchers.IO) {
+        try {
+            val query = java.net.URLEncoder.encode("$title $author", "UTF-8")
+            val searchUrl = "https://api.wikimedia.org/core/v1/wikipedia/es/search/page?q=$query&limit=3"
+            val searchReq = Request.Builder()
+                .url(searchUrl)
+                .header("User-Agent", "Alexandria/1.0 (Android Book Tracker)")
+                .build()
+            val searchRes = client.newCall(searchReq).execute()
+            if (!searchRes.isSuccessful) return@withContext null
+            val searchBody = searchRes.body?.string() ?: return@withContext null
+            val searchJson = JSONObject(searchBody)
+            val pages = searchJson.optJSONArray("pages") ?: return@withContext null
+            if (pages.length() == 0) return@withContext null
+
+            val firstPage = pages.getJSONObject(0)
+            val pageKey = firstPage.optString("key", null) ?: return@withContext null
+
+            val encodedKey = java.net.URLEncoder.encode(pageKey, "UTF-8").replace("+", "%20")
+            val summaryUrl = "https://es.wikipedia.org/api/rest_v1/page/summary/$encodedKey"
+            val summaryReq = Request.Builder()
+                .url(summaryUrl)
+                .header("User-Agent", "Alexandria/1.0 (Android Book Tracker)")
+                .build()
+            val summaryRes = client.newCall(summaryReq).execute()
+            if (!summaryRes.isSuccessful) return@withContext null
+            val summaryBody = summaryRes.body?.string() ?: return@withContext null
+            val summaryJson = JSONObject(summaryBody)
+            val extract = summaryJson.optString("extract", null)
+            if (extract != null && extract.isNotBlank()) return@withContext extract
+
+            null
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching Wikipedia description for '$title'", e)
+            null
+        }
+    }
+
     suspend fun fetchDescriptionFromIsbn(isbn: String): String? = withContext(Dispatchers.IO) {
         try {
             val url = "https://openlibrary.org/isbn/$isbn.json"
