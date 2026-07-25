@@ -14,7 +14,8 @@ data class OpenLibraryDoc(
     val cover_i: Long?,
     val first_publish_year: Int?,
     val isbn: List<String>?,
-    val key: String?
+    val key: String?,
+    val series: List<Map<String, String>>?
 )
 
 interface OpenLibraryApi {

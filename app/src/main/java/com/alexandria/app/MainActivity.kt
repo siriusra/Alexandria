@@ -18,12 +18,18 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.alexandria.app.data.local.PreferencesManager
 import com.alexandria.app.ui.navigation.MainNavGraph
 import com.alexandria.app.ui.theme.AlexandriaTheme
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var preferencesManager: PreferencesManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -31,7 +37,13 @@ class MainActivity : ComponentActivity() {
         val crashLog = CrashHandler.getCrashLog(this)
 
         setContent {
-            AlexandriaTheme {
+            val isDarkTheme by preferencesManager.isDarkTheme.collectAsState(initial = false)
+            val accentIndex by preferencesManager.accentColorIndex.collectAsState(initial = 0)
+
+            AlexandriaTheme(
+                darkTheme = isDarkTheme,
+                accentIndex = accentIndex
+            ) {
                 if (crashLog != null) {
                     CrashDialog(
                         crashLog = crashLog,

@@ -3,6 +3,7 @@ package com.alexandria.app.di
 import android.content.Context
 import com.alexandria.app.data.local.AlexandriaDatabase
 import com.alexandria.app.data.local.BookDao
+import com.alexandria.app.data.local.PreferencesManager
 import com.alexandria.app.data.remote.PortadaResolver
 import dagger.Module
 import dagger.Provides
@@ -31,5 +32,11 @@ object DatabaseModule {
     @Singleton
     fun providePortadaResolver(): PortadaResolver {
         return PortadaResolver()
+    }
+
+    @Provides
+    @Singleton
+    fun providePreferencesManager(@ApplicationContext context: Context): PreferencesManager {
+        return PreferencesManager(context)
     }
 }

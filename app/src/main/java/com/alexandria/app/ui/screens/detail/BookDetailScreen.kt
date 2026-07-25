@@ -2,6 +2,7 @@ package com.alexandria.app.ui.screens.detail
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -9,8 +10,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -128,6 +131,26 @@ fun BookDetailScreen(
                         style = MaterialTheme.typography.bodyLarge
                     )
 
+                    val description = uiState.description
+                    if (description != null || uiState.isDescriptionLoading) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Descripción",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        if (uiState.isDescriptionLoading && description == null) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                        } else if (description != null) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = description,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+
                     if (book.seriesName != null) {
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
@@ -166,6 +189,100 @@ fun BookDetailScreen(
                                 label = { Text(status.displayName) }
                             )
                         }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = "Progreso de lectura",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    val pageCount = book.pageCount
+                    val progress = if (pageCount != null && pageCount > 0) {
+                        (book.currentPage.toFloat() / pageCount).coerceIn(0f, 1f)
+                    } else null
+
+                    if (progress != null) {
+                        LinearProgressIndicator(
+                            progress = { progress },
+                            modifier = Modifier.fillMaxWidth().height(6.dp).clip(MaterialTheme.shapes.small),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        var pageText by remember(book.currentPage) {
+                            mutableStateOf(book.currentPage.toString())
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                val newPage = (pageText.toIntOrNull() ?: 0).coerceAtLeast(1) - 1
+                                pageText = newPage.toString()
+                                viewModel.updateCurrentPage(newPage)
+                            },
+                            contentPadding = PaddingValues(0.dp),
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(Icons.Default.Remove, contentDescription = "Restar página")
+                        }
+
+                        OutlinedTextField(
+                            value = pageText,
+                            onValueChange = { value ->
+                                val filtered = value.filter { it.isDigit() }
+                                pageText = filtered
+                                val page = filtered.toIntOrNull()
+                                if (page != null) {
+                                    val maxPage = pageCount ?: Int.MAX_VALUE
+                                    val clamped = page.coerceAtMost(maxPage)
+                                    viewModel.updateCurrentPage(clamped)
+                                }
+                            },
+                            modifier = Modifier.width(80.dp),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            textStyle = MaterialTheme.typography.bodyLarge.copy(textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                        )
+
+                        OutlinedButton(
+                            onClick = {
+                                val maxPage = pageCount ?: Int.MAX_VALUE
+                                val newPage = ((pageText.toIntOrNull() ?: 0) + 1).coerceAtMost(maxPage)
+                                pageText = newPage.toString()
+                                viewModel.updateCurrentPage(newPage)
+                            },
+                            contentPadding = PaddingValues(0.dp),
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = "Añadir página")
+                        }
+
+                        if (pageCount != null) {
+                            Text(
+                                text = "/ $pageCount",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    if (progress != null) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "${(progress * 100).toInt()}% completado",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
 
                     if (book.rating != null) {

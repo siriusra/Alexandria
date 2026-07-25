@@ -32,7 +32,7 @@ class PortadaResolver {
     suspend fun buscarCoversOpenLibrary(query: String, maxResults: Int = 20): List<GoogleBookItem> = withContext(Dispatchers.IO) {
         try {
             val encodedQuery = java.net.URLEncoder.encode(query, "UTF-8")
-            val url = "https://openlibrary.org/search.json?q=$encodedQuery&fields=key,title,author_name,cover_i,first_publish_year,isbn,subject&limit=$maxResults"
+            val url = "https://openlibrary.org/search.json?q=$encodedQuery&fields=key,title,author_name,cover_i,first_publish_year,isbn,subject,series&limit=$maxResults"
             val request = Request.Builder()
                 .url(url)
                 .header("User-Agent", "Alexandria/1.0 (Android Book Tracker)")
@@ -60,6 +60,10 @@ class PortadaResolver {
                     (0 until arr.length()).map { arr.optString(it, "") }.filter { it.isNotBlank() }
                 }
 
+                val seriesName = doc.optJSONArray("series")?.let { arr ->
+                    if (arr.length() > 0) arr.getJSONObject(0).optString("title", null) else null
+                }
+
                 var thumbnail: String? = null
                 var smallThumbnail: String? = null
                 if (coverId > 0) {
@@ -80,7 +84,8 @@ class PortadaResolver {
                             thumbnail = thumbnail
                         ),
                         categories = subjects,
-                        industryIdentifiers = isbns?.map { IndustryIdentifier("isbn_10", it) }
+                        industryIdentifiers = isbns?.map { IndustryIdentifier("isbn_10", it) },
+                        seriesName = seriesName
                     )
                 ))
             }
@@ -106,6 +111,50 @@ class PortadaResolver {
             val contentType = response.header("Content-Type", "")
             if (contentType?.contains("image") == true) url else null
         } else {
+            null
+        }
+    }
+
+    suspend fun fetchDescriptionFromIsbn(isbn: String): String? = withContext(Dispatchers.IO) {
+        try {
+            val url = "https://openlibrary.org/isbn/$isbn.json"
+            val request = Request.Builder()
+                .url(url)
+                .header("User-Agent", "Alexandria/1.0 (Android Book Tracker)")
+                .build()
+            val response = client.newCall(request).execute()
+            if (!response.isSuccessful) return@withContext null
+            val body = response.body?.string() ?: return@withContext null
+            val json = JSONObject(body)
+            val works = json.optJSONArray("works") ?: return@withContext null
+            if (works.length() == 0) return@withContext null
+            val workKey = works.getJSONObject(0).optString("key", null) ?: return@withContext null
+            fetchDescription(workKey)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching description from ISBN $isbn", e)
+            null
+        }
+    }
+
+    suspend fun fetchDescription(olKey: String): String? = withContext(Dispatchers.IO) {
+        try {
+            val url = "https://openlibrary.org$olKey.json"
+            val request = Request.Builder()
+                .url(url)
+                .header("User-Agent", "Alexandria/1.0 (Android Book Tracker)")
+                .build()
+            val response = client.newCall(request).execute()
+            if (!response.isSuccessful) return@withContext null
+            val body = response.body?.string() ?: return@withContext null
+            val json = JSONObject(body)
+            val desc = json.opt("description") ?: return@withContext null
+            when (desc) {
+                is JSONObject -> desc.optString("value", null)
+                is String -> desc
+                else -> null
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching description for $olKey", e)
             null
         }
     }

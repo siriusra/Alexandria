@@ -52,7 +52,7 @@ fun SagaCarouselCard(
 
     Card(
         modifier = modifier
-            .width(if (isExpanded) 340.dp else 280.dp)
+            .width(if (isExpanded) 380.dp else 320.dp)
             .shadow(12.dp, RoundedCornerShape(24.dp), ambientColor = Color.Black.copy(alpha = 0.2f), spotColor = Color.Black.copy(alpha = 0.3f))
             .clickable { onToggle() },
         shape = RoundedCornerShape(24.dp),
@@ -100,18 +100,6 @@ fun SagaCarouselCard(
                         )
                     }
                 }
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(80.dp)
-                        .align(Alignment.BottomCenter)
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f))
-                            )
-                        )
-                )
 
                 Surface(
                     modifier = Modifier

@@ -162,7 +162,8 @@ class AddBookViewModel @Inject constructor(
             year = if (yearText.isNotBlank()) yearText else _uiState.value.year,
             pageCount = if (pagesText.isNotBlank()) pagesText else _uiState.value.pageCount,
             isbn = if (isbnText.isNotBlank()) isbnText else _uiState.value.isbn,
-            genre = if (genreText.isNotBlank()) genreText else _uiState.value.genre
+            genre = if (genreText.isNotBlank()) genreText else _uiState.value.genre,
+            seriesName = info.seriesName ?: _uiState.value.seriesName
         )
     }
 

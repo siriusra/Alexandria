@@ -9,6 +9,7 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.alexandria.app.BuildConfig
+import com.alexandria.app.data.local.PreferencesManager
 import com.alexandria.app.domain.model.Book
 import com.alexandria.app.domain.model.ReadingStatus
 import com.alexandria.app.data.repository.BookRepository
@@ -28,6 +29,7 @@ import javax.inject.Inject
 
 data class SettingsUiState(
     val isDarkTheme: Boolean = false,
+    val accentColorIndex: Int = 0,
     val exportMessage: String? = null,
     val updateInfo: UpdateInfo? = null,
     val isCheckingUpdate: Boolean = false,
@@ -38,16 +40,36 @@ data class SettingsUiState(
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    private val repository: BookRepository
+    private val repository: BookRepository,
+    private val preferencesManager: PreferencesManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
+    init {
+        viewModelScope.launch {
+            preferencesManager.isDarkTheme.collect { isDark ->
+                _uiState.value = _uiState.value.copy(isDarkTheme = isDark)
+            }
+        }
+        viewModelScope.launch {
+            preferencesManager.accentColorIndex.collect { index ->
+                _uiState.value = _uiState.value.copy(accentColorIndex = index)
+            }
+        }
+    }
+
     fun toggleTheme() {
-        _uiState.value = _uiState.value.copy(
-            isDarkTheme = !_uiState.value.isDarkTheme
-        )
+        viewModelScope.launch {
+            preferencesManager.setDarkTheme(!_uiState.value.isDarkTheme)
+        }
+    }
+
+    fun setAccentColorIndex(index: Int) {
+        viewModelScope.launch {
+            preferencesManager.setAccentColorIndex(index)
+        }
     }
 
     fun checkForUpdate() {

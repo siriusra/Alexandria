@@ -4,18 +4,24 @@ import android.content.Intent
 import android.os.Environment
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.alexandria.app.BuildConfig
+import com.alexandria.app.ui.theme.accentColors
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -83,23 +89,68 @@ fun SettingsScreen(
             Text("Apariencia", style = MaterialTheme.typography.titleMedium)
 
             Card(modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text("Modo oscuro")
-                        Text(
-                            text = if (uiState.isDarkTheme) "Activado" else "Desactivado",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("Modo oscuro")
+                            Text(
+                                text = if (uiState.isDarkTheme) "Activado" else "Desactivado",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = uiState.isDarkTheme,
+                            onCheckedChange = { viewModel.toggleTheme() }
                         )
                     }
-                    Switch(
-                        checked = uiState.isDarkTheme,
-                        onCheckedChange = { viewModel.toggleTheme() }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                    HorizontalDivider()
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        "Color de acento",
+                        style = MaterialTheme.typography.bodyMedium
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        accentColors.forEachIndexed { index, accent ->
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier
+                                    .clickable { viewModel.setAccentColorIndex(index) }
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(if (uiState.isDarkTheme) accent.dark else accent.light)
+                                        .then(
+                                            if (uiState.accentColorIndex == index) {
+                                                Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
+                                            } else Modifier
+                                        )
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = accent.name,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (uiState.accentColorIndex == index)
+                                        MaterialTheme.colorScheme.primary
+                                    else
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
@@ -156,15 +207,59 @@ fun SettingsScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        TextButton(
-                            onClick = { viewModel.checkForUpdate() },
-                            enabled = !uiState.isCheckingUpdate && !uiState.isDownloading
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Button(
+                        onClick = { viewModel.checkForUpdate() },
+                        enabled = !uiState.isCheckingUpdate && !uiState.isDownloading,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Buscar actualizaciones")
+                    }
+
+                    if (uiState.isCheckingUpdate) {
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                        Text(
+                            "Buscando actualizaciones...",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    if (uiState.updateError != null && uiState.updateInfo == null) {
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer
+                            ),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            if (uiState.isCheckingUpdate) {
-                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                                Spacer(modifier = Modifier.width(8.dp))
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        Icons.Default.Warning,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = uiState.updateError!!,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onErrorContainer
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                OutlinedButton(
+                                    onClick = { viewModel.checkForUpdate() },
+                                    enabled = !uiState.isCheckingUpdate
+                                ) {
+                                    Text("Reintentar")
+                                }
                             }
-                            Text("Buscar actualizaciones")
                         }
                     }
 
@@ -172,31 +267,60 @@ fun SettingsScreen(
                         HorizontalDivider()
                         Column {
                             Text(
-                                text = "Nueva versión: v${uiState.updateInfo!!.versionName}",
-                                style = MaterialTheme.typography.bodyMedium,
+                                text = "¡Nueva versión disponible!",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "v${uiState.updateInfo!!.versionName}",
+                                style = MaterialTheme.typography.headlineSmall,
                                 color = MaterialTheme.colorScheme.primary
                             )
                             if (uiState.updateInfo!!.releaseNotes.isNotBlank()) {
-                                Spacer(modifier = Modifier.height(4.dp))
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "Notas de la versión:",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                                 Text(
                                     text = uiState.updateInfo!!.releaseNotes,
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 3
+                                    maxLines = 5
                                 )
                             }
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(12.dp))
+
                             if (uiState.isDownloading) {
                                 Column {
-                                    LinearProgressIndicator(progress = { uiState.downloadProgress }, modifier = Modifier.fillMaxWidth())
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text("Descargando... ${(uiState.downloadProgress * 100).toInt()}%", style = MaterialTheme.typography.bodySmall)
+                                    LinearProgressIndicator(
+                                        progress = { uiState.downloadProgress },
+                                        modifier = Modifier.fillMaxWidth().height(8.dp)
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        "Descargando... ${(uiState.downloadProgress * 100).toInt()}%",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
                                 }
                             } else {
-                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                                    TextButton(onClick = { viewModel.dismissUpdate() }) { Text("Ignorar") }
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Button(onClick = { viewModel.downloadAndInstall(context) }) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    OutlinedButton(
+                                        onClick = { viewModel.dismissUpdate() },
+                                        modifier = Modifier.weight(1f)
+                                    ) { Text("Ignorar") }
+                                    Button(
+                                        onClick = { viewModel.downloadAndInstall(context) },
+                                        modifier = Modifier.weight(1f)
+                                    ) {
                                         Icon(Icons.Default.SystemUpdate, contentDescription = null, modifier = Modifier.size(18.dp))
                                         Spacer(modifier = Modifier.width(4.dp))
                                         Text("Actualizar")
@@ -204,10 +328,6 @@ fun SettingsScreen(
                                 }
                             }
                         }
-                    }
-
-                    if (uiState.updateError != null && uiState.updateInfo == null) {
-                        Text(uiState.updateError!!, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }

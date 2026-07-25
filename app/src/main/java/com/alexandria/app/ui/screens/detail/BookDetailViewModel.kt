@@ -3,6 +3,7 @@ package com.alexandria.app.ui.screens.detail
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.alexandria.app.data.remote.PortadaResolver
 import com.alexandria.app.domain.model.Book
 import com.alexandria.app.domain.model.ReadingStatus
 import com.alexandria.app.data.repository.BookRepository
@@ -13,13 +14,16 @@ import javax.inject.Inject
 
 data class DetailUiState(
     val book: Book? = null,
-    val isLoading: Boolean = true
+    val isLoading: Boolean = true,
+    val description: String? = null,
+    val isDescriptionLoading: Boolean = false
 )
 
 @HiltViewModel
 class BookDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val repository: BookRepository
+    private val repository: BookRepository,
+    private val portadaResolver: PortadaResolver
 ) : ViewModel() {
 
     private val bookId: Long = savedStateHandle.get<Long>("bookId") ?: 0L
@@ -31,6 +35,8 @@ class BookDetailViewModel @Inject constructor(
         loadBook()
     }
 
+    private var descriptionFetched = false
+
     private fun loadBook() {
         viewModelScope.launch {
             repository.getBookById(bookId).collect { book ->
@@ -38,7 +44,28 @@ class BookDetailViewModel @Inject constructor(
                     book = book,
                     isLoading = false
                 )
+                if (book != null && !descriptionFetched) {
+                    descriptionFetched = true
+                    fetchDescription(book)
+                }
             }
+        }
+    }
+
+    private suspend fun fetchDescription(book: Book) {
+        val isbn = book.isbn
+        if (isbn.isNullOrBlank()) return
+        _uiState.value = _uiState.value.copy(isDescriptionLoading = true)
+        val desc = portadaResolver.fetchDescriptionFromIsbn(isbn)
+        _uiState.value = _uiState.value.copy(
+            description = desc,
+            isDescriptionLoading = false
+        )
+    }
+
+    fun updateCurrentPage(page: Int) {
+        viewModelScope.launch {
+            repository.updateCurrentPage(bookId, page)
         }
     }
 

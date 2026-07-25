@@ -19,6 +19,7 @@ data class BookEntity(
     val rating: Float? = null,
     val notes: String? = null,
     val pageCount: Int? = null,
+    val currentPage: Int = 0,
     val isbn: String? = null,
     val dateAdded: Long = System.currentTimeMillis(),
     val dateFinished: Long? = null

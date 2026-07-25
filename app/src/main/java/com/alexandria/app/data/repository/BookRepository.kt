@@ -69,6 +69,10 @@ class BookRepository @Inject constructor(
         return id
     }
 
+    suspend fun updateCurrentPage(bookId: Long, currentPage: Int) {
+        bookDao.updateCurrentPage(bookId, currentPage)
+    }
+
     suspend fun updateBook(book: Book) {
         bookDao.updateBook(book.toEntity())
         if (book.coverUrl == null) {
@@ -134,6 +138,7 @@ class BookRepository @Inject constructor(
             rating = rating,
             notes = notes,
             pageCount = pageCount,
+            currentPage = currentPage,
             isbn = isbn,
             dateAdded = dateAdded,
             dateFinished = dateFinished
@@ -155,6 +160,7 @@ class BookRepository @Inject constructor(
             rating = rating,
             notes = notes,
             pageCount = pageCount,
+            currentPage = currentPage,
             isbn = isbn,
             dateAdded = dateAdded,
             dateFinished = dateFinished
