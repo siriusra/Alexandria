@@ -3,8 +3,12 @@ package com.alexandria.app.ui.components
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -216,6 +220,14 @@ private fun DeckBookCover(
         launch { animatedOffsetY.animateTo(0f, spring(dampingRatio = 0.6f, stiffness = 200f)) }
     }
 
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.92f else 1f,
+        animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
+        label = "pressScale"
+    )
+
     val coverModel = book.coverUrl ?: book.coverLocalPath
 
     Box(
@@ -224,8 +236,8 @@ private fun DeckBookCover(
             .width(cardWidth)
             .aspectRatio(0.68f)
             .graphicsLayer {
-                scaleX = animatedScale.value
-                scaleY = animatedScale.value
+                scaleX = animatedScale.value * pressScale
+                scaleY = animatedScale.value * pressScale
                 alpha = animatedAlpha.value
                 translationY = animatedOffsetY.value
                 rotationZ = rotation * (1f - animatedScale.value)
@@ -233,7 +245,10 @@ private fun DeckBookCover(
                 shape = RoundedCornerShape(12.dp)
                 clip = true
             }
-            .clickable(onClick = onClick)
+            .clickable(
+                interactionSource = interactionSource,
+                onClick = onClick
+            )
     ) {
         if (coverModel != null) {
             AsyncImage(

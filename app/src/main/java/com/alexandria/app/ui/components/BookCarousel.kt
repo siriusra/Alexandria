@@ -7,6 +7,9 @@ import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.PagerSnapDistance
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.animation.core.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -106,10 +109,19 @@ fun BookCarousel(
             val onSurfaceColor = MaterialTheme.colorScheme.onSurface
             for (i in 0 until pageCount.coerceAtMost(10)) {
                 val isSelected = pagerState.currentPage == i
-                val dotColor = if (isSelected) primaryColor else onSurfaceColor.copy(alpha = 0.3f)
+                val dotSize by animateDpAsState(
+                    targetValue = if (isSelected) 8.dp else 6.dp,
+                    animationSpec = spring(dampingRatio = 0.4f, stiffness = 400f),
+                    label = "dotSize"
+                )
+                val dotColor by animateColorAsState(
+                    targetValue = if (isSelected) primaryColor else onSurfaceColor.copy(alpha = 0.3f),
+                    animationSpec = spring(dampingRatio = 0.4f, stiffness = 400f),
+                    label = "dotColor"
+                )
                 Box(
                     modifier = Modifier
-                        .size(if (isSelected) 8.dp else 6.dp)
+                        .size(dotSize)
                         .drawBehind {
                             drawRoundRect(
                                 color = dotColor,

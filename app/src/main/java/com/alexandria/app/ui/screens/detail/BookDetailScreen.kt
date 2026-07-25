@@ -1,5 +1,6 @@
 package com.alexandria.app.ui.screens.detail
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -131,29 +132,41 @@ fun BookDetailScreen(
                         style = MaterialTheme.typography.bodyLarge
                     )
 
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "Descripción",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    when {
-                        uiState.isDescriptionLoading -> {
-                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                        }
-                        uiState.description != null -> {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.65f),
+                        tonalElevation = 2.dp,
+                        border = BorderStroke(
+                            0.5.dp,
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                        )
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
                             Text(
-                                text = uiState.description!!,
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
-                        else -> {
-                            Text(
-                                text = "No hay sinopsis disponible para este libro",
-                                style = MaterialTheme.typography.bodyMedium,
+                                text = "Descripción",
+                                style = MaterialTheme.typography.titleSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            when {
+                                uiState.isDescriptionLoading -> {
+                                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                                }
+                                uiState.description != null -> {
+                                    Text(
+                                        text = uiState.description!!,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                }
+                                else -> {
+                                    Text(
+                                        text = "No hay sinopsis disponible para este libro",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
                         }
                     }
 

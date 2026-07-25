@@ -160,18 +160,36 @@ class PortadaResolver {
             if (pages.length() == 0) return@withContext null
 
             val lowerTitle = title.lowercase().trim()
+            val bookKeywords = listOf("novela", "libro", "cuento", "obra literaria", "literatura", "relato")
+            val personKeywords = listOf(
+                "escritor", "periodista", "poeta", "actor", "música", "pintor",
+                "futbolista", "director", "cantante", "músico"
+            )
             var bestKey: String? = null
+            var fallbackKey: String? = null
 
             for (i in 0 until pages.length()) {
                 val page = pages.getJSONObject(i)
                 val pageTitle = page.optString("title", "").lowercase().trim()
-                if (pageTitle == lowerTitle) {
+                val pageDesc = page.optString("description", null)
+                val desc = pageDesc?.lowercase() ?: ""
+
+                val isPerson = pageDesc != null && personKeywords.any { desc.contains(it) }
+                val isBook = pageDesc != null && bookKeywords.any { desc.contains(it) }
+
+                if (pageTitle == lowerTitle && !isPerson) {
                     bestKey = page.optString("key", null)
                     break
                 }
-                if (bestKey == null && pageTitle.contains(lowerTitle)) {
+                if (bestKey == null && pageTitle.contains(lowerTitle) && !isPerson) {
                     bestKey = page.optString("key", null)
                 }
+                if (fallbackKey == null && isBook && !isPerson) {
+                    fallbackKey = page.optString("key", null)
+                }
+            }
+            if (bestKey == null) {
+                bestKey = fallbackKey
             }
             if (bestKey == null) {
                 bestKey = pages.getJSONObject(0).optString("key", null)

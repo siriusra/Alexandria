@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "skills": {
+    "android-compose-foundations": {
+      "source": "krutikjain/android-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/android-compose-foundations/SKILL.md",
+      "computedHash": "9812f08ec902b05aeccd9f508aaba69ad5564e7ad9d7c12dcc3d913950fa76cf"
+    },
+    "android-design-guidelines": {
+      "source": "ehmo/platform-design-skills",
+      "sourceType": "github",
+      "skillPath": "skills/android/SKILL.md",
+      "computedHash": "4dd3502bf04dc3b81a58ca1af9a1a7fb08a0e35359db2a59530f9105331758b2"
+    },
+    "android-material3-design-system": {
+      "source": "krutikjain/android-agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/android-material3-design-system/SKILL.md",
+      "computedHash": "a4cf67b3f8177435efbe7bc9db494d3b225099015a788979fbea533dc4e5c7c4"
+    },
+    "compose-ui": {
+      "source": "new-silvermoon/awesome-android-agent-skills",
+      "sourceType": "github",
+      "skillPath": ".github/skills/ui/compose-ui/SKILL.md",
+      "computedHash": "031fe59cb3c8566b5080d5cd36612092f66fd735a29ce0ecd1717502140503a2"
+    },
+    "find-skills": {
+      "source": "vercel-labs/skills",
+      "sourceType": "github",
+      "skillPath": "skills/find-skills/SKILL.md",
+      "computedHash": "b146008599c31057cef1c145774cea5d5afb30e8f43fa802e47a4b461419aaaf"
+    },
+    "frontend-design": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "skillPath": "skills/frontend-design/SKILL.md",
+      "computedHash": "4eabc66183767153e404b39d1b839b1c37f2d82d86f0a0d7e880a579d8d62336"
+    },
+    "glassmorphism": {
+      "source": "bergside/awesome-design-skills",
+      "sourceType": "github",
+      "skillPath": "skills/glassmorphism/SKILL.md",
+      "computedHash": "c252e09e7d990eeaced228aafa1384532ff0f02e955010dfc26a46c5f3d35862"
+    },
+    "improve-animations": {
+      "source": "emilkowalski/skills",
+      "sourceType": "github",
+      "skillPath": "skills/improve-animations/SKILL.md",
+      "computedHash": "eeb219a407e325b687af88db25771cc3018e3148245604112f5ac6990b6fd79c"
+    },
+    "mobile-android-design": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "skillPath": "plugins/ui-design/skills/mobile-android-design/SKILL.md",
+      "computedHash": "bcb274bcc4e0ad076b5947f90e5a247f370ed4da1274b2b7347dc293ee396309"
+    },
+    "systematic-debugging": {
+      "source": "obra/superpowers",
+      "sourceType": "github",
+      "skillPath": "skills/systematic-debugging/SKILL.md",
+      "computedHash": "a2750dfbaed1690da73b120254892c4f926b4576cb82eb16fc877783941fe39b"
+    },
+    "web-scraping": {
+      "source": "yfe404/web-scraper",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "f19aec4547733c90d36ae17b8147755fa71d6da5da4a9e244fb7076097e67b9a"
+    }
+  }
+}
