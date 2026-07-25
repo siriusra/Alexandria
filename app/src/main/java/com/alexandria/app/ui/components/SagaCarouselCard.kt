@@ -1,8 +1,6 @@
 package com.alexandria.app.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
@@ -25,7 +23,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -42,22 +39,14 @@ fun SagaCarouselCard(
     onBookClick: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val finishedCount = books.count { it.status == ReadingStatus.FINISHED }
-    val progress = if (books.isEmpty()) 0f else finishedCount.toFloat() / books.size
-    val animatedProgress by animateFloatAsState(
-        targetValue = progress,
-        animationSpec = tween(durationMillis = 800),
-        label = "sagaProgress"
-    )
-
     Card(
         modifier = modifier
-            .width(if (isExpanded) 380.dp else 320.dp)
-            .shadow(12.dp, RoundedCornerShape(24.dp), ambientColor = Color.Black.copy(alpha = 0.2f), spotColor = Color.Black.copy(alpha = 0.3f))
+            .width(if (isExpanded) 420.dp else 340.dp)
+            .shadow(16.dp, RoundedCornerShape(28.dp), ambientColor = Color.Black.copy(alpha = 0.15f), spotColor = Color.Black.copy(alpha = 0.25f))
             .clickable { onToggle() },
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
     ) {
         Column(
             modifier = Modifier.fillMaxWidth()
@@ -68,8 +57,8 @@ fun SagaCarouselCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp)
-                    .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                    .height(240.dp)
+                    .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
             ) {
                 if (coverModel != null) {
                     AsyncImage(
@@ -104,7 +93,7 @@ fun SagaCarouselCard(
                 Surface(
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .padding(8.dp),
+                        .padding(10.dp),
                     shape = RoundedCornerShape(12.dp),
                     color = MaterialTheme.colorScheme.primary
                 ) {
@@ -122,7 +111,7 @@ fun SagaCarouselCard(
                     contentDescription = if (isExpanded) "Contraer" else "Expandir",
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(8.dp)
+                        .padding(10.dp)
                         .clickable { onToggle() },
                     tint = Color.White
                 )
@@ -131,12 +120,12 @@ fun SagaCarouselCard(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .padding(horizontal = 16.dp, vertical = 10.dp)
             ) {
                 Text(
                     text = seriesName,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -144,31 +133,12 @@ fun SagaCarouselCard(
                 Spacer(modifier = Modifier.height(2.dp))
 
                 Text(
-                    text = "${books.size} libro${if (books.size != 1) "s" else ""} · $finishedCount leído${if (finishedCount != 1) "s" else ""}",
+                    text = "${books.size} libro${if (books.size != 1) "s" else ""} · ${
+                        books.count { it.status == ReadingStatus.FINISHED }
+                    } leído${if (books.count { it.status == ReadingStatus.FINISHED } != 1) "s" else ""}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                LinearProgressIndicator(
-                    progress = { animatedProgress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(2.dp)),
-                    color = Color(0xFF9C27B0),
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = "${(progress * 100).toInt()}% completado",
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    textAlign = TextAlign.End,
-                    modifier = Modifier.fillMaxWidth()
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 12.sp
                 )
             }
 

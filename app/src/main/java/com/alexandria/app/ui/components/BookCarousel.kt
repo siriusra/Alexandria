@@ -77,7 +77,7 @@ fun BookCarousel(
                                 book = item.book,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 32.dp, vertical = 16.dp)
+                                    .padding(horizontal = 12.dp, vertical = 16.dp)
                             )
                         }
                         is CarouselItem.Series -> {
@@ -94,7 +94,7 @@ fun BookCarousel(
                                 onBookClick = onBookClick,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 32.dp, vertical = 16.dp)
+                                    .padding(horizontal = 12.dp, vertical = 16.dp)
                             )
                         }
                     }

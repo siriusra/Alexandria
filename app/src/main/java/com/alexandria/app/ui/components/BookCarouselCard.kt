@@ -1,8 +1,8 @@
 package com.alexandria.app.ui.components
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -13,7 +13,6 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -26,20 +25,13 @@ fun CarouselCard(
     book: Book,
     modifier: Modifier = Modifier
 ) {
-    val progress = getReadingProgress(book.status)
-    val animatedProgress by animateFloatAsState(
-        targetValue = progress,
-        animationSpec = tween(durationMillis = 800),
-        label = "readingProgress"
-    )
-
     Card(
         modifier = modifier
-            .width(320.dp)
-            .shadow(12.dp, RoundedCornerShape(24.dp), ambientColor = Color.Black.copy(alpha = 0.2f), spotColor = Color.Black.copy(alpha = 0.3f)),
-        shape = RoundedCornerShape(24.dp),
+            .width(340.dp)
+            .shadow(16.dp, RoundedCornerShape(28.dp), ambientColor = Color.Black.copy(alpha = 0.15f), spotColor = Color.Black.copy(alpha = 0.25f)),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
     ) {
         Column(
             modifier = Modifier.fillMaxSize()
@@ -48,7 +40,7 @@ fun CarouselCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                    .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
             ) {
                 if (book.coverUrl != null || book.coverLocalPath != null) {
                     AsyncImage(
@@ -64,17 +56,32 @@ fun CarouselCard(
                         modifier = Modifier.fillMaxSize()
                     )
                 }
+
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(10.dp)
+                        .size(14.dp)
+                        .clip(CircleShape)
+                        .background(
+                            when (book.status) {
+                                ReadingStatus.READING -> Color(0xFF4CAF50)
+                                ReadingStatus.FINISHED -> Color(0xFF2196F3)
+                                ReadingStatus.PENDING -> Color(0xFFFF9800)
+                            }
+                        )
+                )
             }
 
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .padding(horizontal = 14.dp, vertical = 10.dp)
             ) {
                 Text(
                     text = book.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -86,66 +93,10 @@ fun CarouselCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = when (book.status) {
-                        ReadingStatus.READING -> Color(0xFF4CAF50)
-                        ReadingStatus.FINISHED -> Color(0xFF2196F3)
-                        ReadingStatus.PENDING -> Color(0xFFFF9800)
-                    }
-                ) {
-                    Text(
-                        text = book.status.displayName,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.White
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                LinearProgressIndicator(
-                    progress = { animatedProgress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(2.dp)),
-                    color = when (book.status) {
-                        ReadingStatus.READING -> Color(0xFF4CAF50)
-                        ReadingStatus.FINISHED -> Color(0xFF2196F3)
-                        ReadingStatus.PENDING -> Color(0xFFFF9800)
-                    },
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = when (book.status) {
-                        ReadingStatus.FINISHED -> "Completado"
-                        ReadingStatus.READING -> "En progreso"
-                        ReadingStatus.PENDING -> "Sin empezar"
-                    },
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    textAlign = TextAlign.End,
-                    modifier = Modifier.fillMaxWidth()
+                    overflow = TextOverflow.Ellipsis,
+                    fontSize = 12.sp
                 )
             }
         }
-    }
-}
-
-private fun getReadingProgress(status: ReadingStatus): Float {
-    return when (status) {
-        ReadingStatus.FINISHED -> 1f
-        ReadingStatus.READING -> 0.55f
-        ReadingStatus.PENDING -> 0f
     }
 }
