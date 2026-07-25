@@ -19,8 +19,7 @@ data class LibraryUiState(
     val selectedStatus: ReadingStatus? = null,
     val selectedGenre: String? = null,
     val sortBy: SortOption = SortOption.DATE_ADDED,
-    val carouselItems: List<CarouselItem> = emptyList(),
-    val expandedSaga: String? = null
+    val carouselItems: List<CarouselItem> = emptyList()
 )
 
 enum class SortOption(val displayName: String) {
@@ -42,7 +41,6 @@ class LibraryViewModel @Inject constructor(
     private val _selectedStatus = MutableStateFlow<ReadingStatus?>(null)
     private val _selectedGenre = MutableStateFlow<String?>(null)
     private val _sortBy = MutableStateFlow(SortOption.DATE_ADDED)
-    private val _expandedSaga = MutableStateFlow<String?>(null)
 
     private var cachedBooks: List<Book> = emptyList()
 
@@ -73,10 +71,6 @@ class LibraryViewModel @Inject constructor(
         viewModelScope.launch {
             _viewMode.collect { rebuildUiState() }
         }
-
-        viewModelScope.launch {
-            _expandedSaga.collect { rebuildUiState() }
-        }
     }
 
     private fun rebuildUiState() {
@@ -86,7 +80,6 @@ class LibraryViewModel @Inject constructor(
             val genre = _selectedGenre.value
             val sort = _sortBy.value
             val mode = _viewMode.value
-            val saga = _expandedSaga.value
 
             var result: List<Book> = ArrayList(books)
 
@@ -111,8 +104,7 @@ class LibraryViewModel @Inject constructor(
                 selectedStatus = status,
                 selectedGenre = genre,
                 sortBy = sort,
-                carouselItems = buildCarouselItems(result),
-                expandedSaga = saga
+                carouselItems = buildCarouselItems(result)
             )
         } catch (e: Exception) {
             Log.e("LibraryViewModel", "Error rebuilding UI state", e)
@@ -148,10 +140,6 @@ class LibraryViewModel @Inject constructor(
 
     fun setViewMode(mode: ViewMode) {
         _viewMode.value = mode
-    }
-
-    fun setExpandedSaga(sagaName: String?) {
-        _expandedSaga.value = sagaName
     }
 
     fun setStatusFilter(status: ReadingStatus?) {

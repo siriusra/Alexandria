@@ -103,8 +103,6 @@ fun LibraryScreen(
                     ViewMode.CAROUSEL -> {
                         BookCarousel(
                             items = uiState.carouselItems,
-                            expandedSaga = uiState.expandedSaga,
-                            onSagaToggle = { viewModel.setExpandedSaga(it) },
                             onBookClick = onNavigateToBookDetail
                         )
                     }

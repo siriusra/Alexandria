@@ -26,8 +26,6 @@ sealed class CarouselItem {
 @Composable
 fun BookCarousel(
     items: List<CarouselItem>,
-    expandedSaga: String?,
-    onSagaToggle: (String?) -> Unit,
     onBookClick: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -84,13 +82,6 @@ fun BookCarousel(
                             SagaCarouselCard(
                                 seriesName = item.seriesName,
                                 books = item.books,
-                                isExpanded = expandedSaga == item.seriesName,
-                                onToggle = {
-                                    onSagaToggle(
-                                        if (expandedSaga == item.seriesName) null
-                                        else item.seriesName
-                                    )
-                                },
                                 onBookClick = onBookClick,
                                 modifier = Modifier
                                     .fillMaxWidth()
