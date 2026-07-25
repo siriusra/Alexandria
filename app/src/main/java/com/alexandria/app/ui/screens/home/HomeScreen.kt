@@ -79,7 +79,7 @@ fun HomeScreen(
                             BookCard(
                                 book = book,
                                 onClick = { onNavigateToBookDetail(book.id) },
-                                modifier = Modifier.width(160.dp)
+                                modifier = Modifier.width(180.dp)
                             )
                         }
                     }
@@ -95,11 +95,19 @@ fun HomeScreen(
                     )
                 }
 
-                items(uiState.recentlyAdded, key = { it.id }) { book ->
-                    BookCard(
-                        book = book,
-                        onClick = { onNavigateToBookDetail(book.id) }
-                    )
+                item {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(uiState.recentlyAdded, key = { it.id }) { book ->
+                            BookCard(
+                                book = book,
+                                onClick = { onNavigateToBookDetail(book.id) },
+                                modifier = Modifier.width(140.dp)
+                            )
+                        }
+                    }
                 }
             }
 

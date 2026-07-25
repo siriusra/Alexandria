@@ -36,7 +36,7 @@ fun BookCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp)
+                    .aspectRatio(0.68f)
                     .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
             ) {
                 if (book.coverUrl != null || book.coverLocalPath != null) {

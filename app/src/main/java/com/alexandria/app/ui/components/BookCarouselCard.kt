@@ -1,5 +1,6 @@
 package com.alexandria.app.ui.components
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -9,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -25,10 +27,39 @@ fun CarouselCard(
     book: Book,
     modifier: Modifier = Modifier
 ) {
+    val infiniteTransition = rememberInfiniteTransition(label = "carousel")
+
+    val readingScale by infiniteTransition.animateFloat(
+        initialValue = 1f, targetValue = 1.08f,
+        animationSpec = infiniteRepeatable(tween(1200, easing = EaseInOutCubic), RepeatMode.Reverse),
+        label = "readingScale"
+    )
+    val finishedAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.85f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(2000, easing = EaseInOutCubic), RepeatMode.Reverse),
+        label = "finishedAlpha"
+    )
+    val pendingPulse by infiniteTransition.animateFloat(
+        initialValue = 0.5f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(800, easing = EaseInOutCubic), RepeatMode.Reverse),
+        label = "pendingPulse"
+    )
+
+    val statusColor = when (book.status) {
+        ReadingStatus.READING -> Color(0xFF4CAF50)
+        ReadingStatus.FINISHED -> Color(0xFF2196F3)
+        ReadingStatus.PENDING -> Color(0xFFFF9800)
+    }
+
     Card(
         modifier = modifier
             .width(340.dp)
-            .shadow(16.dp, RoundedCornerShape(28.dp), ambientColor = Color.Black.copy(alpha = 0.15f), spotColor = Color.Black.copy(alpha = 0.25f)),
+            .shadow(
+                if (book.status == ReadingStatus.READING) 8.dp + readingScale * 12.dp else 16.dp,
+                RoundedCornerShape(28.dp),
+                ambientColor = if (book.status == ReadingStatus.READING) statusColor.copy(alpha = readingScale * 0.3f) else Color.Black.copy(alpha = 0.15f),
+                spotColor = if (book.status == ReadingStatus.READING) statusColor.copy(alpha = readingScale * 0.4f) else Color.Black.copy(alpha = 0.25f)
+            ),
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
@@ -61,16 +92,40 @@ fun CarouselCard(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(10.dp)
-                        .size(14.dp)
+                        .size(
+                            when (book.status) {
+                                ReadingStatus.READING -> 14.dp * readingScale
+                                ReadingStatus.FINISHED -> 14.dp
+                                ReadingStatus.PENDING -> 14.dp
+                            }
+                        )
+                        .scale(
+                            when (book.status) {
+                                ReadingStatus.READING -> readingScale
+                                ReadingStatus.FINISHED -> 1f
+                                ReadingStatus.PENDING -> 1f + (pendingPulse - 0.5f) * 0.3f
+                            }
+                        )
                         .clip(CircleShape)
                         .background(
                             when (book.status) {
-                                ReadingStatus.READING -> Color(0xFF4CAF50)
-                                ReadingStatus.FINISHED -> Color(0xFF2196F3)
-                                ReadingStatus.PENDING -> Color(0xFFFF9800)
+                                ReadingStatus.READING -> statusColor
+                                ReadingStatus.FINISHED -> statusColor.copy(alpha = finishedAlpha)
+                                ReadingStatus.PENDING -> statusColor.copy(alpha = pendingPulse)
                             }
                         )
                 )
+                if (book.status == ReadingStatus.FINISHED) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(10.dp)
+                            .size(20.dp)
+                            .scale(finishedAlpha)
+                            .clip(CircleShape)
+                            .background(statusColor.copy(alpha = (1f - finishedAlpha) * 0.3f))
+                    )
+                }
             }
 
             Column(

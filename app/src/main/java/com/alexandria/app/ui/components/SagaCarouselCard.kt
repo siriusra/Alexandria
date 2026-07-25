@@ -57,7 +57,7 @@ fun SagaCarouselCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(240.dp)
+                    .aspectRatio(0.68f)
                     .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
             ) {
                 if (coverModel != null) {
@@ -140,6 +140,47 @@ fun SagaCarouselCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 12.sp
                 )
+
+                if (!isExpanded && books.size > 1) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        books.take(5).forEach { book ->
+                            val coverModel = book.coverUrl ?: book.coverLocalPath
+                            Box(
+                                modifier = Modifier
+                                    .width(32.dp)
+                                    .aspectRatio(0.68f)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .shadow(2.dp, RoundedCornerShape(4.dp))
+                            ) {
+                                if (coverModel != null) {
+                                    AsyncImage(
+                                        model = coverModel,
+                                        contentDescription = null,
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(
+                                                Brush.linearGradient(
+                                                    colors = listOf(
+                                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                                                        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.4f)
+                                                    )
+                                                )
+                                            )
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             AnimatedVisibility(
