@@ -401,6 +401,10 @@ class PortadaResolver {
                 .build()
             val response = redirectClient.newCall(request).execute()
             if (!response.isSuccessful) return@withContext null
+
+            val finalUrl = response.request.url.toString()
+            if (finalUrl.contains("/busquedas?")) return@withContext null
+
             val html = response.body?.string() ?: return@withContext null
             val doc = Jsoup.parse(html)
 
@@ -425,10 +429,6 @@ class PortadaResolver {
                     }
                 } catch (_: Exception) { }
             }
-
-            val meta = doc.selectFirst("meta[name=description]")
-            val metaContent = meta?.attr("content")
-            if (!metaContent.isNullOrBlank()) return@withContext metaContent
 
             null
         } catch (e: Exception) {
