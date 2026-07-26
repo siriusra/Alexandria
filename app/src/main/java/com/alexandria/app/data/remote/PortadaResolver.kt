@@ -156,10 +156,15 @@ class PortadaResolver {
             "escritor", "periodista", "poeta", "actor", "música", "pintor",
             "futbolista", "director", "cantante", "músico"
         )
+        val rejectKeywords = listOf(
+            "videojuego", "álbum", "canción", "disco", "película", "serie de televisión",
+            "anime", "manga", "programa de televisión", "premio", "personaje",
+            "telenovela", "cortometraje", "documental", "concierto"
+        )
 
         var bestKey: String? = null
-        var fallbackKey: String? = null
-        var firstNonPersonKey: String? = null
+        var bookKey: String? = null
+        var neutralKey: String? = null
 
         for (i in 0 until length()) {
             val page = getJSONObject(i)
@@ -169,25 +174,25 @@ class PortadaResolver {
             val desc = pageDesc?.lowercase() ?: ""
 
             val isPerson = pageDesc != null && personKeywords.any { desc.contains(it) }
+            val isReject = pageDesc != null && rejectKeywords.any { desc.contains(it) }
             val isBook = pageDesc != null && bookKeywords.any { desc.contains(it) }
 
-            if (firstNonPersonKey == null && !isPerson) {
-                firstNonPersonKey = page.optString("key", null)
-            }
-
-            if (normPageTitle == normTitle && !isPerson) {
+            if (normPageTitle == normTitle && !isPerson && !isReject) {
                 bestKey = page.optString("key", null)
                 break
             }
-            if (bestKey == null && normPageTitle.contains(normTitle) && !isPerson) {
+            if (bestKey == null && normPageTitle.contains(normTitle) && !isPerson && !isReject) {
                 bestKey = page.optString("key", null)
             }
-            if (fallbackKey == null && isBook && !isPerson) {
-                fallbackKey = page.optString("key", null)
+            if (bookKey == null && isBook && !isPerson) {
+                bookKey = page.optString("key", null)
+            }
+            if (neutralKey == null && !isPerson && !isReject) {
+                neutralKey = page.optString("key", null)
             }
         }
 
-        return bestKey ?: fallbackKey ?: firstNonPersonKey
+        return bestKey ?: bookKey ?: neutralKey
     }
 
     private suspend fun searchWikipediaPage(query: String): JSONArray? {
@@ -225,8 +230,9 @@ class PortadaResolver {
 
             val queries = buildList {
                 add("\"$title\" $author")
+                add("\"$title\" libro")
                 add("\"$title\"")
-                add("\"$title\" novela")
+                add("$title libro")
                 add("$title $author")
             }
 
