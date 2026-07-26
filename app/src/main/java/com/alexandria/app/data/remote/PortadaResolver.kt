@@ -151,7 +151,13 @@ class PortadaResolver {
     private fun JSONArray.findBestPage(title: String): String? {
         val lowerTitle = title.lowercase().trim()
         val normTitle = title.normalizeForMatch()
-        val bookKeywords = listOf("novela", "libro", "cuento", "obra literaria", "literatura", "relato")
+        val bookKeywords = listOf(
+            "novela", "libro", "cuento", "obra literaria", "literatura", "relato",
+            "obra", "ensayo", "biografía", "tratado", "manual", "guía",
+            "compendio", "saga", "serie literaria", "poemario", "drama",
+            "comedia", "tragedia", "fábula", "leyenda", "mito",
+            "novela gráfica", "historieta"
+        )
         val personKeywords = listOf(
             "escritor", "periodista", "poeta", "actor", "música", "pintor",
             "futbolista", "director", "cantante", "músico"
@@ -159,23 +165,25 @@ class PortadaResolver {
         val rejectKeywords = listOf(
             "videojuego", "álbum", "canción", "disco", "película", "serie de televisión",
             "anime", "manga", "programa de televisión", "premio", "personaje",
-            "telenovela", "cortometraje", "documental", "concierto"
+            "telenovela", "cortometraje", "documental", "concierto",
+            "banda", "grupo musical", "sencillo", "gira",
+            "deporte", "equipo", "jugador"
         )
 
         var bestKey: String? = null
         var bookKey: String? = null
-        var neutralKey: String? = null
 
         for (i in 0 until length()) {
             val page = getJSONObject(i)
             val pageTitle = page.optString("title", "").lowercase().trim()
             val normPageTitle = pageTitle.normalizeForMatch()
             val pageDesc = page.optString("description", null)
-            val desc = pageDesc?.lowercase() ?: ""
+            if (pageDesc == null) continue
+            val desc = pageDesc.lowercase()
 
-            val isPerson = pageDesc != null && personKeywords.any { desc.contains(it) }
-            val isReject = pageDesc != null && rejectKeywords.any { desc.contains(it) }
-            val isBook = pageDesc != null && bookKeywords.any { desc.contains(it) }
+            val isPerson = personKeywords.any { desc.contains(it) }
+            val isReject = rejectKeywords.any { desc.contains(it) }
+            val isBook = bookKeywords.any { desc.contains(it) }
 
             if (normPageTitle == normTitle && !isPerson && !isReject) {
                 bestKey = page.optString("key", null)
@@ -187,12 +195,9 @@ class PortadaResolver {
             if (bookKey == null && isBook && !isPerson) {
                 bookKey = page.optString("key", null)
             }
-            if (neutralKey == null && !isPerson && !isReject) {
-                neutralKey = page.optString("key", null)
-            }
         }
 
-        return bestKey ?: bookKey ?: neutralKey
+        return bestKey ?: bookKey
     }
 
     private suspend fun searchWikipediaPage(query: String): JSONArray? {
