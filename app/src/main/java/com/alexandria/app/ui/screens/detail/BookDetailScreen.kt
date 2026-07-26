@@ -31,6 +31,7 @@ import coil.compose.AsyncImage
 import com.alexandria.app.domain.model.ReadingStatus
 import com.alexandria.app.ui.components.PlaceholderPortada
 import com.alexandria.app.ui.components.ReadingStatusBadge
+import com.alexandria.app.ui.components.uiConfig
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -311,15 +312,49 @@ fun BookDetailScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    var expanded by remember { mutableStateOf(false) }
+                    val currentConfig = book.status.uiConfig()
+                    ExposedDropdownMenuBox(
+                        expanded = expanded,
+                        onExpandedChange = { expanded = it }
                     ) {
-                        ReadingStatus.entries.forEach { status ->
-                            FilterChip(
-                                selected = book.status == status,
-                                onClick = { viewModel.updateStatus(status) },
-                                label = { Text(status.displayName) }
-                            )
+                        OutlinedTextField(
+                            value = book.status.displayName,
+                            onValueChange = {},
+                            readOnly = true,
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = currentConfig.icon,
+                                    contentDescription = null,
+                                    tint = currentConfig.color
+                                )
+                            },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false }
+                        ) {
+                            ReadingStatus.entries.forEach { status ->
+                                val cfg = status.uiConfig()
+                                DropdownMenuItem(
+                                    onClick = {
+                                        viewModel.updateStatus(status)
+                                        expanded = false
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = cfg.icon,
+                                            contentDescription = null,
+                                            tint = cfg.color
+                                        )
+                                    },
+                                    text = { Text(status.displayName) }
+                                )
+                            }
                         }
                     }
 

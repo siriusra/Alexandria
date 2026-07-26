@@ -125,7 +125,7 @@ class BookDetailViewModel @Inject constructor(
             _uiState.value.book?.let { book ->
                 val updatedBook = book.copy(
                     status = newStatus,
-                    dateFinished = if (newStatus == ReadingStatus.FINISHED) {
+                    dateFinished = if (newStatus == ReadingStatus.TERMINADO) {
                         System.currentTimeMillis()
                     } else {
                         book.dateFinished

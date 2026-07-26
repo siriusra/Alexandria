@@ -45,20 +45,21 @@ fun CarouselCard(
         label = "pendingPulse"
     )
 
-    val statusColor = when (book.status) {
-        ReadingStatus.READING -> Color(0xFF4CAF50)
-        ReadingStatus.FINISHED -> Color(0xFF2196F3)
-        ReadingStatus.PENDING -> Color(0xFFFF9800)
-    }
+    val config = book.status.uiConfig()
+    val statusColor = config.color
+
+    val isActive = book.status == ReadingStatus.LEYENDO
+    val isFinished = book.status == ReadingStatus.TERMINADO
+    val isPending = book.status == ReadingStatus.QUIERO_LEER
 
     Card(
         modifier = modifier
             .width(340.dp)
             .shadow(
-                if (book.status == ReadingStatus.READING) 8.dp + 12.dp * readingScale else 16.dp,
+                if (isActive) 8.dp + 12.dp * readingScale else 16.dp,
                 RoundedCornerShape(28.dp),
-                ambientColor = if (book.status == ReadingStatus.READING) statusColor.copy(alpha = readingScale * 0.3f) else Color.Black.copy(alpha = 0.15f),
-                spotColor = if (book.status == ReadingStatus.READING) statusColor.copy(alpha = readingScale * 0.4f) else Color.Black.copy(alpha = 0.25f)
+                ambientColor = if (isActive) statusColor.copy(alpha = readingScale * 0.3f) else Color.Black.copy(alpha = 0.15f),
+                spotColor = if (isActive) statusColor.copy(alpha = readingScale * 0.4f) else Color.Black.copy(alpha = 0.25f)
             ),
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -93,29 +94,29 @@ fun CarouselCard(
                         .align(Alignment.TopEnd)
                         .padding(10.dp)
                         .size(
-                            when (book.status) {
-                                ReadingStatus.READING -> 14.dp * readingScale
-                                ReadingStatus.FINISHED -> 14.dp
-                                ReadingStatus.PENDING -> 14.dp
+                            when {
+                                isActive -> 14.dp * readingScale
+                                else -> 14.dp
                             }
                         )
                         .scale(
-                            when (book.status) {
-                                ReadingStatus.READING -> readingScale
-                                ReadingStatus.FINISHED -> 1f
-                                ReadingStatus.PENDING -> 1f + (pendingPulse - 0.5f) * 0.3f
+                            when {
+                                isActive -> readingScale
+                                isPending -> 1f + (pendingPulse - 0.5f) * 0.3f
+                                else -> 1f
                             }
                         )
                         .clip(CircleShape)
                         .background(
-                            when (book.status) {
-                                ReadingStatus.READING -> statusColor
-                                ReadingStatus.FINISHED -> statusColor.copy(alpha = finishedAlpha)
-                                ReadingStatus.PENDING -> statusColor.copy(alpha = pendingPulse)
+                            when {
+                                isActive -> statusColor
+                                isFinished -> statusColor.copy(alpha = finishedAlpha)
+                                isPending -> statusColor.copy(alpha = pendingPulse)
+                                else -> statusColor
                             }
                         )
                 )
-                if (book.status == ReadingStatus.FINISHED) {
+                if (isFinished) {
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopEnd)

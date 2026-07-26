@@ -8,7 +8,7 @@ data class Book(
     val seriesName: String? = null,
     val seriesOrder: Int? = null,
     val year: Int? = null,
-    val status: ReadingStatus = ReadingStatus.PENDING,
+    val status: ReadingStatus = ReadingStatus.QUIERO_LEER,
     val coverUrl: String? = null,
     val coverLocalPath: String? = null,
     val rating: Float? = null,

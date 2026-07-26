@@ -18,7 +18,6 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.alexandria.app.domain.model.Book
 import com.alexandria.app.domain.model.ReadingStatus
-import com.alexandria.app.ui.theme.*
 
 @Composable
 fun BookCard(
@@ -110,21 +109,27 @@ fun BookCard(
 
 @Composable
 fun ReadingStatusBadge(status: ReadingStatus) {
-    val (backgroundColor, textColor) = when (status) {
-        ReadingStatus.READING -> StatusReading to androidx.compose.ui.graphics.Color.White
-        ReadingStatus.FINISHED -> StatusFinished to androidx.compose.ui.graphics.Color.White
-        ReadingStatus.PENDING -> StatusPending to androidx.compose.ui.graphics.Color.White
-    }
-
+    val config = status.uiConfig()
     Surface(
         shape = RoundedCornerShape(12.dp),
-        color = backgroundColor
+        color = config.color
     ) {
-        Text(
-            text = status.displayName,
+        Row(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            style = MaterialTheme.typography.labelSmall,
-            color = textColor
-        )
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Icon(
+                imageVector = config.icon,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(12.dp)
+            )
+            Text(
+                text = status.displayName,
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.White
+            )
+        }
     }
 }

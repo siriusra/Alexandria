@@ -19,6 +19,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.alexandria.app.domain.model.ReadingStatus
 import com.alexandria.app.ui.components.CoverPicker
+import com.alexandria.app.ui.components.uiConfig
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -147,15 +148,49 @@ fun AddBookScreen(
                 style = MaterialTheme.typography.titleSmall
             )
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            var expanded by remember { mutableStateOf(false) }
+            val currentConfig = uiState.status.uiConfig()
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = it }
             ) {
-                ReadingStatus.entries.forEach { status ->
-                    FilterChip(
-                        selected = uiState.status == status,
-                        onClick = { viewModel.onStatusChange(status) },
-                        label = { Text(status.displayName) }
-                    )
+                OutlinedTextField(
+                    value = uiState.status.displayName,
+                    onValueChange = {},
+                    readOnly = true,
+                    leadingIcon = {
+                        Icon(
+                            imageVector = currentConfig.icon,
+                            contentDescription = null,
+                            tint = currentConfig.color
+                        )
+                    },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor()
+                )
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    ReadingStatus.entries.forEach { status ->
+                        val cfg = status.uiConfig()
+                        DropdownMenuItem(
+                            onClick = {
+                                viewModel.onStatusChange(status)
+                                expanded = false
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = cfg.icon,
+                                    contentDescription = null,
+                                    tint = cfg.color
+                                )
+                            },
+                            text = { Text(status.displayName) }
+                        )
+                    }
                 }
             }
 

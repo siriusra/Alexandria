@@ -294,11 +294,7 @@ private fun DeckBookCover(
             overflow = TextOverflow.Ellipsis
         )
 
-        val statusColor = when (book.status) {
-            ReadingStatus.READING -> Color(0xFF4CAF50)
-            ReadingStatus.FINISHED -> Color(0xFF2196F3)
-            ReadingStatus.PENDING -> Color(0xFFFF9800)
-        }
+        val statusColor = book.status.uiConfig().color
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)

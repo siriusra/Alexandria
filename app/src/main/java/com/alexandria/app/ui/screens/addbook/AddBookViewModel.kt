@@ -20,7 +20,7 @@ data class AddBookUiState(
     val seriesName: String = "",
     val seriesOrder: String = "",
     val year: String = "",
-    val status: ReadingStatus = ReadingStatus.PENDING,
+    val status: ReadingStatus = ReadingStatus.QUIERO_LEER,
     val coverUrl: String? = null,
     val rating: Float? = null,
     val notes: String = "",
