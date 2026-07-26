@@ -65,7 +65,7 @@ class BookDetailViewModel @Inject constructor(
         }
 
         if (desc == null) {
-            desc = portadaResolver.fetchDescriptionBySearch(book.title, book.author, lang = null)
+            desc = portadaResolver.fetchDescriptionBySearch(book.title, book.author, lang = "spa")
         }
 
         if (desc == null) {
