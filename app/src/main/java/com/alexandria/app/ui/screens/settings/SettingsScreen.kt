@@ -188,6 +188,45 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            Text("Sinopsis", style = MaterialTheme.typography.titleMedium)
+
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    SourceCheckbox(
+                        label = "ISBN (OpenLibrary)",
+                        description = "Búsqueda directa por ISBN",
+                        checked = uiState.synopsisSources.isbn,
+                        onToggle = { viewModel.toggleSynopsisSource("isbn") }
+                    )
+                    HorizontalDivider()
+                    SourceCheckbox(
+                        label = "Casa del Libro",
+                        description = "Sinopsis de casadellibro.com",
+                        checked = uiState.synopsisSources.casaDelLibro,
+                        onToggle = { viewModel.toggleSynopsisSource("casa_del_libro") }
+                    )
+                    HorizontalDivider()
+                    SourceCheckbox(
+                        label = "OpenLibrary (español)",
+                        description = "OpenLibrary filtrado por idioma",
+                        checked = uiState.synopsisSources.openLibrary,
+                        onToggle = { viewModel.toggleSynopsisSource("openlibrary") }
+                    )
+                    HorizontalDivider()
+                    SourceCheckbox(
+                        label = "Wikipedia",
+                        description = "Wikipedia en español (último recurso)",
+                        checked = uiState.synopsisSources.wikipedia,
+                        onToggle = { viewModel.toggleSynopsisSource("wikipedia") }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
@@ -348,6 +387,36 @@ fun SettingsScreen(
             confirmButton = {
                 TextButton(onClick = { showImportDialog = false }) { Text("Cancelar") }
             }
+        )
+    }
+}
+
+@Composable
+private fun SourceCheckbox(
+    label: String,
+    description: String,
+    checked: Boolean,
+    onToggle: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onToggle() }
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(label, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Checkbox(
+            checked = checked,
+            onCheckedChange = { onToggle() }
         )
     }
 }

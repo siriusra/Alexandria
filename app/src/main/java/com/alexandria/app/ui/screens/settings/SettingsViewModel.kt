@@ -30,6 +30,7 @@ import javax.inject.Inject
 data class SettingsUiState(
     val isDarkTheme: Boolean = false,
     val accentColorIndex: Int = 0,
+    val synopsisSources: com.alexandria.app.data.local.SynopsisSourceConfig = com.alexandria.app.data.local.SynopsisSourceConfig(),
     val exportMessage: String? = null,
     val updateInfo: UpdateInfo? = null,
     val isCheckingUpdate: Boolean = false,
@@ -58,6 +59,11 @@ class SettingsViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(accentColorIndex = index)
             }
         }
+        viewModelScope.launch {
+            preferencesManager.synopsisSources.collect { sources ->
+                _uiState.value = _uiState.value.copy(synopsisSources = sources)
+            }
+        }
     }
 
     fun toggleTheme() {
@@ -69,6 +75,30 @@ class SettingsViewModel @Inject constructor(
     fun setAccentColorIndex(index: Int) {
         viewModelScope.launch {
             preferencesManager.setAccentColorIndex(index)
+        }
+    }
+
+    fun toggleSynopsisSource(source: String) {
+        viewModelScope.launch {
+            val current = _uiState.value.synopsisSources
+            val enabled = when (source) {
+                "isbn" -> current.isbn
+                "casa_del_libro" -> current.casaDelLibro
+                "openlibrary" -> current.openLibrary
+                "wikipedia" -> current.wikipedia
+                else -> return@launch
+            }
+            // Prevent disabling all sources
+            val anyEnabled = when (source) {
+                "isbn" -> !enabled || current.casaDelLibro || current.openLibrary || current.wikipedia
+                "casa_del_libro" -> current.isbn || !enabled || current.openLibrary || current.wikipedia
+                "openlibrary" -> current.isbn || current.casaDelLibro || !enabled || current.wikipedia
+                "wikipedia" -> current.isbn || current.casaDelLibro || current.openLibrary || !enabled
+                else -> return@launch
+            }
+            if (anyEnabled) {
+                preferencesManager.setSynopsisSourceEnabled(source, !enabled)
+            }
         }
     }
 

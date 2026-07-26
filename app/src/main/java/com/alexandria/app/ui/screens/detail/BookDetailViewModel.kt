@@ -3,6 +3,7 @@ package com.alexandria.app.ui.screens.detail
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.alexandria.app.data.local.PreferencesManager
 import com.alexandria.app.data.remote.PortadaResolver
 import com.alexandria.app.domain.model.Book
 import com.alexandria.app.domain.model.ReadingStatus
@@ -23,7 +24,8 @@ data class DetailUiState(
 class BookDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val repository: BookRepository,
-    private val portadaResolver: PortadaResolver
+    private val portadaResolver: PortadaResolver,
+    private val preferencesManager: PreferencesManager
 ) : ViewModel() {
 
     private val bookId: Long = savedStateHandle.get<Long>("bookId") ?: 0L
@@ -55,20 +57,21 @@ class BookDetailViewModel @Inject constructor(
     private suspend fun fetchDescription(book: Book) {
         _uiState.value = _uiState.value.copy(isDescriptionLoading = true)
         var desc: String? = null
+        val sources = preferencesManager.synopsisSources.first()
 
-        if (!book.isbn.isNullOrBlank()) {
+        if (sources.isbn && !book.isbn.isNullOrBlank()) {
             desc = portadaResolver.fetchDescriptionFromIsbn(book.isbn)
         }
 
-        if (desc == null) {
+        if (desc == null && sources.casaDelLibro) {
             desc = portadaResolver.fetchDescriptionFromCasaDelLibro(book.title, book.author)
         }
 
-        if (desc == null) {
+        if (desc == null && sources.openLibrary) {
             desc = portadaResolver.fetchDescriptionBySearch(book.title, book.author, lang = "spa")
         }
 
-        if (desc == null) {
+        if (desc == null && sources.wikipedia) {
             desc = portadaResolver.fetchDescriptionFromWikipedia(book.title, book.author)
         }
 
