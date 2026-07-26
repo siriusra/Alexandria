@@ -187,8 +187,8 @@ fun SagaCarouselCard(
 
                 Text(
                     text = "${books.size} libro${if (books.size != 1) "s" else ""} · ${
-                        books.count { it.status == ReadingStatus.FINISHED }
-                    } leído${if (books.count { it.status == ReadingStatus.FINISHED } != 1) "s" else ""}",
+books.count { it.status == ReadingStatus.TERMINADO }
+                    } leído${if (books.count { it.status == ReadingStatus.TERMINADO } != 1) "s" else ""}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 12.sp
