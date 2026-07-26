@@ -29,6 +29,7 @@ import java.util.*
 @Composable
 fun SettingsScreen(
     onNavigateToUpdate: () -> Unit,
+    onNavigateToSynopsisSettings: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -190,37 +191,48 @@ fun SettingsScreen(
 
             Text("Sinopsis", style = MaterialTheme.typography.titleMedium)
 
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onNavigateToSynopsisSettings() }
+                        .padding(20.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    SourceCheckbox(
-                        label = "ISBN (OpenLibrary)",
-                        description = "Búsqueda directa por ISBN",
-                        checked = uiState.synopsisSources.isbn,
-                        onToggle = { viewModel.toggleSynopsisSource("isbn") }
+                    Icon(
+                        Icons.Default.Info,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(28.dp)
                     )
-                    HorizontalDivider()
-                    SourceCheckbox(
-                        label = "Casa del Libro",
-                        description = "Sinopsis de casadellibro.com",
-                        checked = uiState.synopsisSources.casaDelLibro,
-                        onToggle = { viewModel.toggleSynopsisSource("casa_del_libro") }
-                    )
-                    HorizontalDivider()
-                    SourceCheckbox(
-                        label = "OpenLibrary (español)",
-                        description = "OpenLibrary filtrado por idioma",
-                        checked = uiState.synopsisSources.openLibrary,
-                        onToggle = { viewModel.toggleSynopsisSource("openlibrary") }
-                    )
-                    HorizontalDivider()
-                    SourceCheckbox(
-                        label = "Wikipedia",
-                        description = "Wikipedia en español (último recurso)",
-                        checked = uiState.synopsisSources.wikipedia,
-                        onToggle = { viewModel.toggleSynopsisSource("wikipedia") }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "Fuentes de sinopsis",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                        )
+                        val enabledCount = listOf(
+                            uiState.synopsisSources.isbn,
+                            uiState.synopsisSources.casaDelLibro,
+                            uiState.synopsisSources.openLibrary,
+                            uiState.synopsisSources.wikipedia
+                        ).count { it }
+                        Text(
+                            "$enabledCount fuentes activas",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Icon(
+                        Icons.Default.ChevronRight,
+                        contentDescription = "Configurar fuentes",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -387,36 +399,6 @@ fun SettingsScreen(
             confirmButton = {
                 TextButton(onClick = { showImportDialog = false }) { Text("Cancelar") }
             }
-        )
-    }
-}
-
-@Composable
-private fun SourceCheckbox(
-    label: String,
-    description: String,
-    checked: Boolean,
-    onToggle: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onToggle() }
-            .padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(label, style = MaterialTheme.typography.bodyMedium)
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        Checkbox(
-            checked = checked,
-            onCheckedChange = { onToggle() }
         )
     }
 }
