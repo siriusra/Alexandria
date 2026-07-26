@@ -386,6 +386,57 @@ class PortadaResolver {
         }
     }
 
+    suspend fun fetchDescriptionFromTodoTusLibros(isbn: String): String? = withContext(Dispatchers.IO) {
+        try {
+            val cleanIsbn = isbn.replace(Regex("[\\s-]"), "")
+            val url = "https://www.todostuslibros.com/busquedas?isbn=$cleanIsbn"
+            val redirectClient = client.newBuilder()
+                .connectTimeout(10, TimeUnit.SECONDS)
+                .readTimeout(10, TimeUnit.SECONDS)
+                .followRedirects(true)
+                .build()
+            val request = Request.Builder()
+                .url(url)
+                .header("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36")
+                .build()
+            val response = redirectClient.newCall(request).execute()
+            if (!response.isSuccessful) return@withContext null
+            val html = response.body?.string() ?: return@withContext null
+            val doc = Jsoup.parse(html)
+
+            for (script in doc.select("script[type=application/ld+json]")) {
+                try {
+                    val raw = script.html().trim()
+                    if (raw.startsWith("[")) {
+                        val arr = JSONArray(raw)
+                        for (i in 0 until arr.length()) {
+                            val item = arr.getJSONObject(i)
+                            if (item.optString("@type") == "Book") {
+                                val desc = item.optString("description", null)
+                                if (!desc.isNullOrBlank()) return@withContext desc
+                            }
+                        }
+                    } else {
+                        val item = JSONObject(raw)
+                        if (item.optString("@type") == "Book") {
+                            val desc = item.optString("description", null)
+                            if (!desc.isNullOrBlank()) return@withContext desc
+                        }
+                    }
+                } catch (_: Exception) { }
+            }
+
+            val meta = doc.selectFirst("meta[name=description]")
+            val metaContent = meta?.attr("content")
+            if (!metaContent.isNullOrBlank()) return@withContext metaContent
+
+            null
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching TodoTusLibros description for ISBN $isbn", e)
+            null
+        }
+    }
+
     suspend fun fetchFromGoogleBooks(title: String, author: String): GoogleBooksData? = withContext(Dispatchers.IO) {
         try {
             val query = java.net.URLEncoder.encode("$title $author", "UTF-8")

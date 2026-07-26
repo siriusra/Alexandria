@@ -17,7 +17,9 @@ data class SynopsisSourceConfig(
     val isbn: Boolean = true,
     val casaDelLibro: Boolean = true,
     val openLibrary: Boolean = true,
-    val wikipedia: Boolean = true
+    val wikipedia: Boolean = true,
+    val todostuslibros: Boolean = true,
+    val googleBooks: Boolean = true
 )
 
 class PreferencesManager(private val context: Context) {
@@ -29,6 +31,8 @@ class PreferencesManager(private val context: Context) {
         val SYNOPSIS_CASA_DEL_LIBRO = booleanPreferencesKey("synopsis_casa_del_libro")
         val SYNOPSIS_OPENLIBRARY = booleanPreferencesKey("synopsis_openlibrary")
         val SYNOPSIS_WIKIPEDIA = booleanPreferencesKey("synopsis_wikipedia")
+        val SYNOPSIS_TODOSTUSLIBROS = booleanPreferencesKey("synopsis_todostuslibros")
+        val SYNOPSIS_GOOGLE_BOOKS = booleanPreferencesKey("synopsis_google_books")
     }
 
     val isDarkTheme: Flow<Boolean> = context.dataStore.data.map { prefs ->
@@ -43,9 +47,11 @@ class PreferencesManager(private val context: Context) {
         context.dataStore.data.map { it[SYNOPSIS_ISBN] ?: true },
         context.dataStore.data.map { it[SYNOPSIS_CASA_DEL_LIBRO] ?: true },
         context.dataStore.data.map { it[SYNOPSIS_OPENLIBRARY] ?: true },
-        context.dataStore.data.map { it[SYNOPSIS_WIKIPEDIA] ?: true }
-    ) { isbn, cdl, ol, wp ->
-        SynopsisSourceConfig(isbn, cdl, ol, wp)
+        context.dataStore.data.map { it[SYNOPSIS_WIKIPEDIA] ?: true },
+        context.dataStore.data.map { it[SYNOPSIS_TODOSTUSLIBROS] ?: true },
+        context.dataStore.data.map { it[SYNOPSIS_GOOGLE_BOOKS] ?: true }
+    ) { arr ->
+        SynopsisSourceConfig(arr[0], arr[1], arr[2], arr[3], arr[4], arr[5])
     }
 
     suspend fun setDarkTheme(enabled: Boolean) {
@@ -67,6 +73,8 @@ class PreferencesManager(private val context: Context) {
                 "casa_del_libro" -> prefs[SYNOPSIS_CASA_DEL_LIBRO] = enabled
                 "openlibrary" -> prefs[SYNOPSIS_OPENLIBRARY] = enabled
                 "wikipedia" -> prefs[SYNOPSIS_WIKIPEDIA] = enabled
+                "todostuslibros" -> prefs[SYNOPSIS_TODOSTUSLIBROS] = enabled
+                "google_books" -> prefs[SYNOPSIS_GOOGLE_BOOKS] = enabled
             }
         }
     }

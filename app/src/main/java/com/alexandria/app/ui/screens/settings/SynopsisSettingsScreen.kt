@@ -20,9 +20,11 @@ data class SourceOption(
 
 private val sources = listOf(
     SourceOption("isbn", "ISBN (OpenLibrary)", "Búsqueda directa por ISBN"),
+    SourceOption("todostuslibros", "TodosTusLibros", "Sinopsis de todostuslibros.com"),
     SourceOption("casa_del_libro", "Casa del Libro", "Sinopsis de casadellibro.com"),
     SourceOption("openlibrary", "OpenLibrary (español)", "OpenLibrary filtrado por idioma"),
-    SourceOption("wikipedia", "Wikipedia", "Wikipedia en español (último recurso)")
+    SourceOption("wikipedia", "Wikipedia", "Wikipedia en español"),
+    SourceOption("google_books", "Google Books", "Google Books con restricción de idioma")
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -69,9 +71,11 @@ fun SynopsisSettingsScreen(
                         if (index > 0) HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                         val isChecked = when (source.key) {
                             "isbn" -> checked.isbn
+                            "todostuslibros" -> checked.todostuslibros
                             "casa_del_libro" -> checked.casaDelLibro
                             "openlibrary" -> checked.openLibrary
                             "wikipedia" -> checked.wikipedia
+                            "google_books" -> checked.googleBooks
                             else -> false
                         }
                         Row(
@@ -105,7 +109,7 @@ fun SynopsisSettingsScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                "El orden de consulta es: ISBN → Casa del Libro → OpenLibrary → Wikipedia.\n"
+                "El orden de consulta es: ISBN → TodosTusLibros → Casa del Libro → OpenLibrary → Wikipedia → Google Books.\n"
                         + "Las fuentes desactivadas se saltan automáticamente.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant

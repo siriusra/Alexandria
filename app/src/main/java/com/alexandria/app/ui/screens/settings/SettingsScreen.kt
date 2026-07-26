@@ -222,9 +222,11 @@ fun SettingsScreen(
                         )
                         val enabledCount = listOf(
                             uiState.synopsisSources.isbn,
+                            uiState.synopsisSources.todostuslibros,
                             uiState.synopsisSources.casaDelLibro,
                             uiState.synopsisSources.openLibrary,
-                            uiState.synopsisSources.wikipedia
+                            uiState.synopsisSources.wikipedia,
+                            uiState.synopsisSources.googleBooks
                         ).count { it }
                         Text(
                             "$enabledCount fuentes activas",

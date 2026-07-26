@@ -69,6 +69,10 @@ class BookDetailViewModel @Inject constructor(
             desc = portadaResolver.fetchDescriptionFromIsbn(book.isbn)
         }
 
+        if (desc == null && sources.todostuslibros && !book.isbn.isNullOrBlank()) {
+            desc = portadaResolver.fetchDescriptionFromTodoTusLibros(book.isbn)
+        }
+
         if (desc == null && sources.casaDelLibro) {
             desc = portadaResolver.fetchDescriptionFromCasaDelLibro(book.title, book.author)
         }
@@ -76,7 +80,7 @@ class BookDetailViewModel @Inject constructor(
         if (sources.openLibrary) {
             val olData = portadaResolver.fetchDescriptionBySearch(book.title, book.author, lang = "spa")
             if (olData != null) {
-                desc = desc ?: olData.description
+                if (desc == null && olData.description != null) desc = olData.description
                 if (externalRating == null && olData.averageRating != null) {
                     externalRating = olData.averageRating
                     externalRatingsCount = olData.ratingsCount
@@ -85,14 +89,14 @@ class BookDetailViewModel @Inject constructor(
             }
         }
 
-        if (sources.wikipedia && desc == null) {
+        if (desc == null && sources.wikipedia) {
             desc = portadaResolver.fetchDescriptionFromWikipedia(book.title, book.author)
         }
 
-        if (desc == null || externalRating == null) {
+        if (sources.googleBooks) {
             val googleData = portadaResolver.fetchFromGoogleBooks(book.title, book.author)
             if (googleData != null) {
-                desc = desc ?: googleData.description
+                if (desc == null && googleData.description != null) desc = googleData.description
                 if (externalRating == null && googleData.averageRating != null) {
                     externalRating = googleData.averageRating
                     externalRatingsCount = googleData.ratingsCount

@@ -22,12 +22,17 @@
 
 ## Description lookup chain (`BookDetailViewModel`)
 
-`fetchDescription(book)` calls in order until one returns non‑null:
+`fetchDescription(book)` calls in order, skipping disabled sources, until a description is found:
 
 1. `portadaResolver.fetchDescriptionFromIsbn(book.isbn)` — OpenLibrary via ISBN
-2. `portadaResolver.fetchDescriptionFromWikipedia(title, author)` — Spanish Wikipedia (two‑step: search via `api.wikimedia.org/core/v1/wikipedia/es/search/page`, then fetch `extract` from `es.wikipedia.org/api/rest_v1/page/summary/{key}`). Matches by exact title (case‑insensitive), falls back to contains‑match, then first result.
-3. `portadaResolver.fetchDescriptionBySearch(title, author, lang = null)` — OpenLibrary unqualified search
-4. Null → UI shows "No hay sinopsis disponible"
+2. `portadaResolver.fetchDescriptionFromTodoTusLibros(book.isbn)` — todostuslibros.com via ISBN redirect
+3. `portadaResolver.fetchDescriptionFromCasaDelLibro(title, author)` — casadellibro.com search + scrape
+4. `portadaResolver.fetchDescriptionBySearch(title, author, lang = "spa")` — OpenLibrary Spanish search (also fetches OpenLibrary ratings)
+5. `portadaResolver.fetchDescriptionFromWikipedia(title, author)` — Spanish Wikipedia (two‑step: search via `api.wikimedia.org/core/v1/wikipedia/es/search/page`, then fetch `extract`)
+6. `portadaResolver.fetchFromGoogleBooks(title, author)` — Google Books API with `langRestrict=es` (also fetches Google Books ratings)
+7. Null → UI shows "No hay sinopsis disponible"
+
+External ratings are sourced from OpenLibrary (step 4) and Google Books (step 6), whichever provides them first.
 
 ## Key project layout
 

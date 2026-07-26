@@ -86,14 +86,17 @@ class SettingsViewModel @Inject constructor(
                 "casa_del_libro" -> current.casaDelLibro
                 "openlibrary" -> current.openLibrary
                 "wikipedia" -> current.wikipedia
+                "todostuslibros" -> current.todostuslibros
+                "google_books" -> current.googleBooks
                 else -> return@launch
             }
-            // Prevent disabling all sources
             val anyEnabled = when (source) {
-                "isbn" -> !enabled || current.casaDelLibro || current.openLibrary || current.wikipedia
-                "casa_del_libro" -> current.isbn || !enabled || current.openLibrary || current.wikipedia
-                "openlibrary" -> current.isbn || current.casaDelLibro || !enabled || current.wikipedia
-                "wikipedia" -> current.isbn || current.casaDelLibro || current.openLibrary || !enabled
+                "isbn" -> !enabled || current.casaDelLibro || current.openLibrary || current.wikipedia || current.todostuslibros || current.googleBooks
+                "casa_del_libro" -> current.isbn || !enabled || current.openLibrary || current.wikipedia || current.todostuslibros || current.googleBooks
+                "openlibrary" -> current.isbn || current.casaDelLibro || !enabled || current.wikipedia || current.todostuslibros || current.googleBooks
+                "wikipedia" -> current.isbn || current.casaDelLibro || current.openLibrary || !enabled || current.todostuslibros || current.googleBooks
+                "todostuslibros" -> current.isbn || current.casaDelLibro || current.openLibrary || current.wikipedia || !enabled || current.googleBooks
+                "google_books" -> current.isbn || current.casaDelLibro || current.openLibrary || current.wikipedia || current.todostuslibros || !enabled
                 else -> return@launch
             }
             if (anyEnabled) {
