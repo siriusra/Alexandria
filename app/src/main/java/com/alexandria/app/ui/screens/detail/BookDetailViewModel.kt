@@ -73,30 +73,31 @@ class BookDetailViewModel @Inject constructor(
             desc = portadaResolver.fetchDescriptionFromCasaDelLibro(book.title, book.author)
         }
 
-        if (desc == null && sources.openLibrary) {
-            desc = portadaResolver.fetchDescriptionBySearch(book.title, book.author, lang = "spa")
+        if (sources.openLibrary) {
+            val olData = portadaResolver.fetchDescriptionBySearch(book.title, book.author, lang = "spa")
+            if (olData != null) {
+                desc = desc ?: olData.description
+                if (externalRating == null && olData.averageRating != null) {
+                    externalRating = olData.averageRating
+                    externalRatingsCount = olData.ratingsCount
+                    ratingSource = "OpenLibrary"
+                }
+            }
         }
 
         if (sources.wikipedia && desc == null) {
             desc = portadaResolver.fetchDescriptionFromWikipedia(book.title, book.author)
         }
 
-        if (desc == null) {
+        if (desc == null || externalRating == null) {
             val googleData = portadaResolver.fetchFromGoogleBooks(book.title, book.author)
             if (googleData != null) {
-                desc = googleData.description
-                externalRating = googleData.averageRating
-                externalRatingsCount = googleData.ratingsCount
-                ratingSource = "Google Books"
-            }
-        }
-
-        if (externalRating == null) {
-            val googleData = portadaResolver.fetchFromGoogleBooks(book.title, book.author)
-            if (googleData != null) {
-                externalRating = googleData.averageRating
-                externalRatingsCount = googleData.ratingsCount
-                ratingSource = "Google Books"
+                desc = desc ?: googleData.description
+                if (externalRating == null && googleData.averageRating != null) {
+                    externalRating = googleData.averageRating
+                    externalRatingsCount = googleData.ratingsCount
+                    ratingSource = "Google Books"
+                }
             }
         }
 

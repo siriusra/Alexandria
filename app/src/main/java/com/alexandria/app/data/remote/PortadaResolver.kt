@@ -124,10 +124,10 @@ class PortadaResolver {
         }
     }
 
-    suspend fun fetchDescriptionBySearch(title: String, author: String, lang: String? = null): String? = withContext(Dispatchers.IO) {
+    suspend fun fetchDescriptionBySearch(title: String, author: String, lang: String? = null): GoogleBooksData? = withContext(Dispatchers.IO) {
         try {
             val query = java.net.URLEncoder.encode("$title ${author.take(30)}", "UTF-8")
-            var searchUrl = "https://openlibrary.org/search.json?q=$query&fields=key&limit=10"
+            var searchUrl = "https://openlibrary.org/search.json?q=$query&fields=key,ratings_average,ratings_count,description&limit=10"
             if (lang != null) searchUrl += "&language=$lang"
             val searchReq = Request.Builder()
                 .url(searchUrl)
@@ -139,10 +139,21 @@ class PortadaResolver {
             val json = JSONObject(body)
             val docs = json.optJSONArray("docs") ?: return@withContext null
             for (i in 0 until docs.length()) {
-                val key = docs.getJSONObject(i).optString("key", "")
+                val doc = docs.getJSONObject(i)
+                val key = doc.optString("key", "")
+                var rating: Double? = null
+                var ratingCount: Int? = null
+                val rawRating = doc.opt("ratings_average")
+                if (rawRating is Number) rating = rawRating.toDouble()
+                val rawCount = doc.opt("ratings_count")
+                if (rawCount is Number) ratingCount = rawCount.toInt()
                 if (key.startsWith("/works/")) {
                     val desc = fetchDescription(key)
-                    if (desc != null) return@withContext desc
+                    return@withContext GoogleBooksData(
+                        description = desc,
+                        averageRating = rating,
+                        ratingsCount = ratingCount
+                    )
                 }
             }
             null
