@@ -144,72 +144,100 @@ class PortadaResolver {
         }
     }
 
+    private fun String.normalizeForMatch(): String =
+        lowercase().trim().replace(Regex("[^a-záéíóúñü0-9\\s]"), "")
+
+    private fun JSONArray.findBestPage(title: String): String? {
+        val lowerTitle = title.lowercase().trim()
+        val normTitle = title.normalizeForMatch()
+        val bookKeywords = listOf("novela", "libro", "cuento", "obra literaria", "literatura", "relato")
+        val personKeywords = listOf(
+            "escritor", "periodista", "poeta", "actor", "música", "pintor",
+            "futbolista", "director", "cantante", "músico"
+        )
+
+        var bestKey: String? = null
+        var fallbackKey: String? = null
+        var firstNonPersonKey: String? = null
+
+        for (i in 0 until length()) {
+            val page = getJSONObject(i)
+            val pageTitle = page.optString("title", "").lowercase().trim()
+            val normPageTitle = pageTitle.normalizeForMatch()
+            val pageDesc = page.optString("description", null)
+            val desc = pageDesc?.lowercase() ?: ""
+
+            val isPerson = pageDesc != null && personKeywords.any { desc.contains(it) }
+            val isBook = pageDesc != null && bookKeywords.any { desc.contains(it) }
+
+            if (firstNonPersonKey == null && !isPerson) {
+                firstNonPersonKey = page.optString("key", null)
+            }
+
+            if (normPageTitle == normTitle && !isPerson) {
+                bestKey = page.optString("key", null)
+                break
+            }
+            if (bestKey == null && normPageTitle.contains(normTitle) && !isPerson) {
+                bestKey = page.optString("key", null)
+            }
+            if (fallbackKey == null && isBook && !isPerson) {
+                fallbackKey = page.optString("key", null)
+            }
+        }
+
+        return bestKey ?: fallbackKey ?: firstNonPersonKey
+    }
+
+    private suspend fun searchWikipediaPage(query: String): JSONArray? {
+        val encodedQuery = java.net.URLEncoder.encode(query, "UTF-8")
+        val url = "https://api.wikimedia.org/core/v1/wikipedia/es/search/page?q=$encodedQuery&limit=5"
+        val request = Request.Builder()
+            .url(url)
+            .header("User-Agent", "Alexandria/1.0 (Android Book Tracker)")
+            .build()
+        val response = client.newCall(request).execute()
+        if (!response.isSuccessful) return null
+        val body = response.body?.string() ?: return null
+        val json = JSONObject(body)
+        return json.optJSONArray("pages")
+    }
+
+    private suspend fun fetchWikipediaExtract(key: String): String? {
+        val encodedKey = java.net.URLEncoder.encode(key, "UTF-8").replace("+", "%20")
+        val url = "https://es.wikipedia.org/api/rest_v1/page/summary/$encodedKey"
+        val request = Request.Builder()
+            .url(url)
+            .header("User-Agent", "Alexandria/1.0 (Android Book Tracker)")
+            .build()
+        val response = client.newCall(request).execute()
+        if (!response.isSuccessful) return null
+        val body = response.body?.string() ?: return null
+        val json = JSONObject(body)
+        val extract = json.optString("extract", null)
+        return if (extract != null && extract.isNotBlank()) extract else null
+    }
+
     suspend fun fetchDescriptionFromWikipedia(title: String, author: String): String? = withContext(Dispatchers.IO) {
         try {
             if (title.isBlank()) return@withContext null
-            val query = java.net.URLEncoder.encode("$title $author", "UTF-8")
-            val searchUrl = "https://api.wikimedia.org/core/v1/wikipedia/es/search/page?q=$query&limit=5"
-            val searchReq = Request.Builder()
-                .url(searchUrl)
-                .header("User-Agent", "Alexandria/1.0 (Android Book Tracker)")
-                .build()
-            val searchRes = client.newCall(searchReq).execute()
-            if (!searchRes.isSuccessful) return@withContext null
-            val searchBody = searchRes.body?.string() ?: return@withContext null
-            val searchJson = JSONObject(searchBody)
-            val pages = searchJson.optJSONArray("pages") ?: return@withContext null
-            if (pages.length() == 0) return@withContext null
 
-            val lowerTitle = title.lowercase().trim()
-            val bookKeywords = listOf("novela", "libro", "cuento", "obra literaria", "literatura", "relato")
-            val personKeywords = listOf(
-                "escritor", "periodista", "poeta", "actor", "música", "pintor",
-                "futbolista", "director", "cantante", "músico"
-            )
-            var bestKey: String? = null
-            var fallbackKey: String? = null
+            val queries = buildList {
+                add("\"$title\" $author")
+                add("\"$title\"")
+                add("\"$title\" novela")
+                add("$title $author")
+            }
 
-            for (i in 0 until pages.length()) {
-                val page = pages.getJSONObject(i)
-                val pageTitle = page.optString("title", "").lowercase().trim()
-                val pageDesc = page.optString("description", null)
-                val desc = pageDesc?.lowercase() ?: ""
-
-                val isPerson = pageDesc != null && personKeywords.any { desc.contains(it) }
-                val isBook = pageDesc != null && bookKeywords.any { desc.contains(it) }
-
-                if (pageTitle == lowerTitle && !isPerson) {
-                    bestKey = page.optString("key", null)
-                    break
-                }
-                if (bestKey == null && pageTitle.contains(lowerTitle) && !isPerson) {
-                    bestKey = page.optString("key", null)
-                }
-                if (fallbackKey == null && isBook && !isPerson) {
-                    fallbackKey = page.optString("key", null)
+            for (query in queries) {
+                val pages = searchWikipediaPage(query) ?: continue
+                if (pages.length() == 0) continue
+                val bestKey = pages.findBestPage(title)
+                if (bestKey != null) {
+                    val extract = fetchWikipediaExtract(bestKey)
+                    if (extract != null) return@withContext extract
                 }
             }
-            if (bestKey == null) {
-                bestKey = fallbackKey
-            }
-            if (bestKey == null) {
-                bestKey = pages.getJSONObject(0).optString("key", null)
-            }
-            if (bestKey == null) return@withContext null
-
-            val encodedKey = java.net.URLEncoder.encode(bestKey, "UTF-8").replace("+", "%20")
-            val summaryUrl = "https://es.wikipedia.org/api/rest_v1/page/summary/$encodedKey"
-            val summaryReq = Request.Builder()
-                .url(summaryUrl)
-                .header("User-Agent", "Alexandria/1.0 (Android Book Tracker)")
-                .build()
-            val summaryRes = client.newCall(summaryReq).execute()
-            if (!summaryRes.isSuccessful) return@withContext null
-            val summaryBody = summaryRes.body?.string() ?: return@withContext null
-            val summaryJson = JSONObject(summaryBody)
-            val extract = summaryJson.optString("extract", null)
-            if (extract != null && extract.isNotBlank()) return@withContext extract
-
             null
         } catch (e: Exception) {
             Log.e(TAG, "Error fetching Wikipedia description for '$title'", e)
