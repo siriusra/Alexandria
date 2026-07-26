@@ -1,6 +1,12 @@
 package com.alexandria.app.ui.screens.detail
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -13,6 +19,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -152,20 +160,30 @@ fun BookDetailScreen(
                             Spacer(modifier = Modifier.height(8.dp))
                             when {
                                 uiState.isDescriptionLoading -> {
-                                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                                }
-                                uiState.description != null -> {
-                                    Text(
-                                        text = uiState.description!!,
-                                        style = MaterialTheme.typography.bodyMedium
+                                    LinearProgressIndicator(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(MaterialTheme.shapes.small)
                                     )
                                 }
                                 else -> {
-                                    Text(
-                                        text = "No hay sinopsis disponible para este libro",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                    AnimatedVisibility(
+                                        visible = uiState.description != null,
+                                        enter = fadeIn(animationSpec = spring(dampingRatio = 0.8f)) +
+                                                slideInVertically(
+                                                    initialOffsetY = { it / 4 },
+                                                    animationSpec = spring(dampingRatio = 0.8f)
+                                                )
+                                    ) {
+                                        Text(
+                                            text = uiState.description ?: "No hay sinopsis disponible para este libro",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = if (uiState.description == null)
+                                                MaterialTheme.colorScheme.onSurfaceVariant
+                                            else
+                                                MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -173,6 +191,17 @@ fun BookDetailScreen(
 
                     if (uiState.externalRating != null) {
                         Spacer(modifier = Modifier.height(12.dp))
+                        val animRating = animateFloatAsState(
+                            targetValue = uiState.externalRating!!.toFloat(),
+                            animationSpec = spring(dampingRatio = 0.6f, stiffness = 200f),
+                            label = "rating"
+                        )
+                        var pressed by remember { mutableStateOf(false) }
+                        val scale by animateFloatAsState(
+                            targetValue = if (pressed) 0.97f else 1f,
+                            animationSpec = spring(dampingRatio = 0.6f),
+                            label = "scale"
+                        )
                         Surface(
                             shape = RoundedCornerShape(16.dp),
                             color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
@@ -180,11 +209,21 @@ fun BookDetailScreen(
                             border = BorderStroke(
                                 0.5.dp,
                                 MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
-                            )
+                            ),
+                            modifier = Modifier.graphicsLayer(scaleX = scale, scaleY = scale)
                         ) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .pointerInput(Unit) {
+                                        detectTapGestures(
+                                            onPress = {
+                                                pressed = true
+                                                tryAwaitRelease()
+                                                pressed = false
+                                            }
+                                        )
+                                    }
                                     .padding(16.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -197,15 +236,16 @@ fun BookDetailScreen(
                                 )
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "${uiState.externalRating}",
+                                        text = "%.1f".format(animRating.value),
                                         style = MaterialTheme.typography.titleLarge,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onTertiaryContainer
                                     )
                                     Row(verticalAlignment = Alignment.CenterVertically) {
+                                        val fullStars = uiState.externalRating!!.toInt()
                                         repeat(5) { i ->
                                             Icon(
-                                                imageVector = if (i < uiState.externalRating!!.toInt()) {
+                                                imageVector = if (i < fullStars) {
                                                     Icons.Default.Star
                                                 } else {
                                                     Icons.Default.StarBorder
