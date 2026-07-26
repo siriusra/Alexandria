@@ -23,7 +23,9 @@ data class VolumeInfo(
     val imageLinks: ImageLinks?,
     val categories: List<String>?,
     val industryIdentifiers: List<IndustryIdentifier>?,
-    val seriesName: String? = null
+    val seriesName: String? = null,
+    val averageRating: Double? = null,
+    val ratingsCount: Int? = null
 )
 
 data class ImageLinks(
@@ -43,11 +45,14 @@ interface GoogleBooksApi {
         @Query("q") query: String,
         @Query("maxResults") maxResults: Int = 20,
         @Query("startIndex") startIndex: Int = 0,
-        @Query("printType") printType: String = "books"
+        @Query("printType") printType: String = "books",
+        @Query("langRestrict") langRestrict: String? = null,
+        @Query("key") key: String? = null
     ): GoogleBooksResponse
 
     @GET("volumes/{volumeId}")
     suspend fun getBookById(
-        @Path("volumeId") volumeId: String
+        @Path("volumeId") volumeId: String,
+        @Query("key") key: String? = null
     ): GoogleBookItem
 }

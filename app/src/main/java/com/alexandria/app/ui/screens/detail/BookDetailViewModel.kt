@@ -17,7 +17,10 @@ data class DetailUiState(
     val book: Book? = null,
     val isLoading: Boolean = true,
     val description: String? = null,
-    val isDescriptionLoading: Boolean = false
+    val isDescriptionLoading: Boolean = false,
+    val externalRating: Double? = null,
+    val externalRatingsCount: Int? = null,
+    val ratingSource: String? = null
 )
 
 @HiltViewModel
@@ -57,6 +60,9 @@ class BookDetailViewModel @Inject constructor(
     private suspend fun fetchDescription(book: Book) {
         _uiState.value = _uiState.value.copy(isDescriptionLoading = true)
         var desc: String? = null
+        var externalRating: Double? = null
+        var externalRatingsCount: Int? = null
+        var ratingSource: String? = null
         val sources = preferencesManager.synopsisSources.first()
 
         if (sources.isbn && !book.isbn.isNullOrBlank()) {
@@ -71,13 +77,35 @@ class BookDetailViewModel @Inject constructor(
             desc = portadaResolver.fetchDescriptionBySearch(book.title, book.author, lang = "spa")
         }
 
-        if (desc == null && sources.wikipedia) {
+        if (sources.wikipedia && desc == null) {
             desc = portadaResolver.fetchDescriptionFromWikipedia(book.title, book.author)
+        }
+
+        if (desc == null) {
+            val googleData = portadaResolver.fetchFromGoogleBooks(book.title, book.author)
+            if (googleData != null) {
+                desc = googleData.description
+                externalRating = googleData.averageRating
+                externalRatingsCount = googleData.ratingsCount
+                ratingSource = "Google Books"
+            }
+        }
+
+        if (externalRating == null) {
+            val googleData = portadaResolver.fetchFromGoogleBooks(book.title, book.author)
+            if (googleData != null) {
+                externalRating = googleData.averageRating
+                externalRatingsCount = googleData.ratingsCount
+                ratingSource = "Google Books"
+            }
         }
 
         _uiState.value = _uiState.value.copy(
             description = desc,
-            isDescriptionLoading = false
+            isDescriptionLoading = false,
+            externalRating = externalRating,
+            externalRatingsCount = externalRatingsCount,
+            ratingSource = ratingSource
         )
     }
 
