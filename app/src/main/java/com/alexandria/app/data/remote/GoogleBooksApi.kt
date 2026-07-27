@@ -38,6 +38,12 @@ data class IndustryIdentifier(
     val identifier: String
 )
 
+data class GoogleBooksData(
+    val description: String?,
+    val averageRating: Double?,
+    val ratingsCount: Int?
+)
+
 interface GoogleBooksApi {
 
     @GET("volumes")

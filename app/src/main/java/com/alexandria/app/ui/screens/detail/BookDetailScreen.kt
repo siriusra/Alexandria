@@ -75,9 +75,10 @@ fun BookDetailScreen(
                         .fillMaxWidth()
                         .height(300.dp)
                 ) {
-                    if (book.coverUrl != null || book.coverLocalPath != null) {
+                    val coverUrl = uiState.coverUrl ?: book.coverUrl ?: book.coverLocalPath
+                    if (coverUrl != null) {
                         AsyncImage(
-                            model = book.coverUrl ?: book.coverLocalPath,
+                            model = coverUrl,
                             contentDescription = book.title,
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop

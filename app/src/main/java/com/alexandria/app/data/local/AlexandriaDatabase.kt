@@ -6,12 +6,15 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.alexandria.app.data.local.CoverCacheDao
 import com.alexandria.app.data.local.entity.BookEntity
+import com.alexandria.app.data.local.entity.CoverCacheEntity
 
-@Database(entities = [BookEntity::class], version = 2, exportSchema = false)
+@Database(entities = [BookEntity::class, CoverCacheEntity::class], version = 3, exportSchema = false)
 abstract class AlexandriaDatabase : RoomDatabase() {
 
     abstract fun bookDao(): BookDao
+    abstract fun coverCacheDao(): CoverCacheDao
 
     companion object {
         @Volatile
@@ -21,13 +24,24 @@ abstract class AlexandriaDatabase : RoomDatabase() {
             db.execSQL("ALTER TABLE books ADD COLUMN currentPage INTEGER NOT NULL DEFAULT 0")
         }
 
+        val MIGRATION_2_3 = Migration(2, 3) { db ->
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS cover_cache (
+                    isbn TEXT NOT NULL PRIMARY KEY,
+                    coverUrl TEXT NOT NULL,
+                    source TEXT NOT NULL,
+                    timestamp INTEGER NOT NULL
+                )
+            """.trimIndent())
+        }
+
         fun getDatabase(context: Context): AlexandriaDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AlexandriaDatabase::class.java,
                     "alexandria_database"
-                ).addMigrations(MIGRATION_1_2).build()
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
                 INSTANCE = instance
                 instance
             }

@@ -6,7 +6,11 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.alexandria.app.data.model.CoverSource
+import com.alexandria.app.data.model.CoverSourceConfig
+import com.google.gson.Gson
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
@@ -33,6 +37,10 @@ class PreferencesManager(private val context: Context) {
         val SYNOPSIS_WIKIPEDIA = booleanPreferencesKey("synopsis_wikipedia")
         val SYNOPSIS_TODOSTUSLIBROS = booleanPreferencesKey("synopsis_todostuslibros")
         val SYNOPSIS_GOOGLE_BOOKS = booleanPreferencesKey("synopsis_google_books")
+        val COVER_SOURCES_CONFIG = stringPreferencesKey("cover_sources_config")
+        val COVER_CACHE_ENABLED = booleanPreferencesKey("cover_cache_enabled")
+
+        fun getDefaultCoverConfig(): CoverSourceConfig = CoverSourceConfig()
     }
 
     val isDarkTheme: Flow<Boolean> = context.dataStore.data.map { prefs ->
@@ -52,6 +60,23 @@ class PreferencesManager(private val context: Context) {
         context.dataStore.data.map { it[SYNOPSIS_GOOGLE_BOOKS] ?: true }
     ) { arr ->
         SynopsisSourceConfig(arr[0], arr[1], arr[2], arr[3], arr[4], arr[5])
+    }
+
+    val coverSourcesConfig: Flow<CoverSourceConfig> = context.dataStore.data.map { prefs ->
+        val json = prefs[COVER_SOURCES_CONFIG]
+        if (json != null && json.isNotBlank()) {
+            try {
+                Gson().fromJson(json, CoverSourceConfig::class.java)
+            } catch (e: Exception) {
+                CoverSourceConfig()
+            }
+        } else {
+            CoverSourceConfig()
+        }
+    }
+
+    val coverCacheEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[COVER_CACHE_ENABLED] ?: true
     }
 
     suspend fun setDarkTheme(enabled: Boolean) {
@@ -76,6 +101,18 @@ class PreferencesManager(private val context: Context) {
                 "todostuslibros" -> prefs[SYNOPSIS_TODOSTUSLIBROS] = enabled
                 "google_books" -> prefs[SYNOPSIS_GOOGLE_BOOKS] = enabled
             }
+        }
+    }
+
+    suspend fun setCoverSourcesConfig(config: CoverSourceConfig) {
+        context.dataStore.edit { prefs ->
+            prefs[COVER_SOURCES_CONFIG] = Gson().toJson(config)
+        }
+    }
+
+    suspend fun setCoverCacheEnabled(enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[COVER_CACHE_ENABLED] = enabled
         }
     }
 }

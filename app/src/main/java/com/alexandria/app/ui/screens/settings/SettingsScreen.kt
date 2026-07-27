@@ -31,7 +31,7 @@ import java.util.*
 @Composable
 fun SettingsScreen(
     onNavigateToUpdate: () -> Unit,
-    onNavigateToSynopsisSettings: () -> Unit,
+    onNavigateToFuentesSettings: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -192,7 +192,7 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text("Sinopsis", style = MaterialTheme.typography.titleMedium)
+            Text("Fuentes", style = MaterialTheme.typography.titleMedium)
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -203,24 +203,24 @@ fun SettingsScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onNavigateToSynopsisSettings() }
+                        .clickable { onNavigateToFuentesSettings() }
                         .padding(20.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Icon(
-                        Icons.Default.Info,
+                        Icons.Default.Source,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(28.dp)
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            "Fuentes de sinopsis",
+                            "Fuentes de sinopsis y portadas",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                         )
-                        val enabledCount = listOf(
+                        val sinopsisCount = listOf(
                             uiState.synopsisSources.isbn,
                             uiState.synopsisSources.todostuslibros,
                             uiState.synopsisSources.casaDelLibro,
@@ -228,8 +228,9 @@ fun SettingsScreen(
                             uiState.synopsisSources.wikipedia,
                             uiState.synopsisSources.googleBooks
                         ).count { it }
+                        val portadaCount = uiState.coverSourcesConfig.enabledSources.size
                         Text(
-                            "$enabledCount fuentes activas",
+                            "$sinopsisCount sinopsis + $portadaCount portadas activas",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

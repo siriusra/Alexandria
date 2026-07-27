@@ -10,6 +10,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.alexandria.app.BuildConfig
 import com.alexandria.app.data.local.PreferencesManager
+import com.alexandria.app.data.model.CoverSource
+import com.alexandria.app.data.model.CoverSourceConfig
 import com.alexandria.app.domain.model.Book
 import com.alexandria.app.domain.model.ReadingStatus
 import com.alexandria.app.data.repository.BookRepository
@@ -31,6 +33,7 @@ data class SettingsUiState(
     val isDarkTheme: Boolean = false,
     val accentColorIndex: Int = 0,
     val synopsisSources: com.alexandria.app.data.local.SynopsisSourceConfig = com.alexandria.app.data.local.SynopsisSourceConfig(),
+    val coverSourcesConfig: CoverSourceConfig = CoverSourceConfig(),
     val exportMessage: String? = null,
     val updateInfo: UpdateInfo? = null,
     val isCheckingUpdate: Boolean = false,
@@ -62,6 +65,16 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             preferencesManager.synopsisSources.collect { sources ->
                 _uiState.value = _uiState.value.copy(synopsisSources = sources)
+            }
+        }
+        viewModelScope.launch {
+            preferencesManager.coverSourcesConfig.collect { config ->
+                _uiState.value = _uiState.value.copy(coverSourcesConfig = config)
+            }
+        }
+        viewModelScope.launch {
+            preferencesManager.coverCacheEnabled.collect { enabled ->
+                _uiState.value = _uiState.value.copy(coverSourcesConfig = _uiState.value.coverSourcesConfig.copy(cacheEnabled = enabled))
             }
         }
     }
@@ -102,6 +115,40 @@ class SettingsViewModel @Inject constructor(
             if (anyEnabled) {
                 preferencesManager.setSynopsisSourceEnabled(source, !enabled)
             }
+        }
+    }
+
+    fun toggleCoverSource(source: CoverSource) {
+        viewModelScope.launch {
+            val current = _uiState.value.coverSourcesConfig
+            val newConfig = current.toggleSource(source)
+            if (newConfig.enabledSources.isNotEmpty()) {
+                preferencesManager.setCoverSourcesConfig(newConfig)
+            }
+        }
+    }
+
+    fun moveCoverSource(fromIndex: Int, toIndex: Int) {
+        viewModelScope.launch {
+            val current = _uiState.value.coverSourcesConfig
+            if (fromIndex in current.enabledSources.indices && toIndex in current.enabledSources.indices) {
+                val newConfig = current.moveSource(fromIndex, toIndex)
+                preferencesManager.setCoverSourcesConfig(newConfig)
+            }
+        }
+    }
+
+    fun enableCoverSource(source: CoverSource) {
+        viewModelScope.launch {
+            val current = _uiState.value.coverSourcesConfig
+            val newConfig = current.toggleSource(source)
+            preferencesManager.setCoverSourcesConfig(newConfig)
+        }
+    }
+
+    fun setCoverCacheEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesManager.setCoverCacheEnabled(enabled)
         }
     }
 

@@ -19,8 +19,8 @@ import com.alexandria.app.ui.screens.detail.BookDetailScreen
 import com.alexandria.app.ui.screens.home.HomeScreen
 import com.alexandria.app.ui.screens.library.LibraryScreen
 import com.alexandria.app.ui.screens.search.SearchScreen
+import com.alexandria.app.ui.screens.settings.FuentesSettingsScreen
 import com.alexandria.app.ui.screens.settings.SettingsScreen
-import com.alexandria.app.ui.screens.settings.SynopsisSettingsScreen
 import com.alexandria.app.ui.screens.update.UpdateScreen
 
 @Composable
@@ -69,14 +69,14 @@ fun MainNavGraph() {
                     onNavigateToUpdate = {
                         navController.navigate(Screen.Update.route)
                     },
-                    onNavigateToSynopsisSettings = {
-                        navController.navigate(Screen.SynopsisSettings.route)
+                    onNavigateToFuentesSettings = {
+                        navController.navigate(Screen.FuentesSettings.route)
                     }
                 )
             }
 
-            composable(Screen.SynopsisSettings.route) {
-                SynopsisSettingsScreen(
+            composable(Screen.FuentesSettings.route) {
+                FuentesSettingsScreen(
                     onNavigateBack = {
                         navController.popBackStack()
                     }

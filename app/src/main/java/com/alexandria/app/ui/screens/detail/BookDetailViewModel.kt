@@ -3,7 +3,9 @@ package com.alexandria.app.ui.screens.detail
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.alexandria.app.data.local.CoverCacheDao
 import com.alexandria.app.data.local.PreferencesManager
+import com.alexandria.app.data.model.CoverSourceConfig
 import com.alexandria.app.data.remote.PortadaResolver
 import com.alexandria.app.domain.model.Book
 import com.alexandria.app.domain.model.ReadingStatus
@@ -20,7 +22,8 @@ data class DetailUiState(
     val isDescriptionLoading: Boolean = false,
     val externalRating: Double? = null,
     val externalRatingsCount: Int? = null,
-    val ratingSource: String? = null
+    val ratingSource: String? = null,
+    val coverUrl: String? = null
 )
 
 @HiltViewModel
@@ -28,7 +31,8 @@ class BookDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val repository: BookRepository,
     private val portadaResolver: PortadaResolver,
-    private val preferencesManager: PreferencesManager
+    private val preferencesManager: PreferencesManager,
+    private val coverCacheDao: CoverCacheDao
 ) : ViewModel() {
 
     private val bookId: Long = savedStateHandle.get<Long>("bookId") ?: 0L
@@ -41,6 +45,7 @@ class BookDetailViewModel @Inject constructor(
     }
 
     private var descriptionFetched = false
+    private var coverFetched = false
 
     private fun loadBook() {
         viewModelScope.launch {
@@ -53,8 +58,24 @@ class BookDetailViewModel @Inject constructor(
                     descriptionFetched = true
                     fetchDescription(book)
                 }
+                if (book != null && !coverFetched) {
+                    coverFetched = true
+                    fetchCover(book)
+                }
             }
         }
+    }
+
+    private suspend fun fetchCover(book: Book) {
+        val config = preferencesManager.coverSourcesConfig.first()
+        val coverUrl = portadaResolver.resolverCover(
+            isbn = book.isbn,
+            titulo = book.title,
+            autor = book.author,
+            coverCacheDao = coverCacheDao,
+            config = config
+        )
+        _uiState.value = _uiState.value.copy(coverUrl = coverUrl)
     }
 
     private suspend fun fetchDescription(book: Book) {
