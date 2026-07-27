@@ -55,7 +55,7 @@ android {
             )
         }
         debug {
-            signingConfig = signingConfigs.getByName("release")
+            // Use default debug keystore for local development
         }
     }
     compileOptions {
