@@ -36,6 +36,19 @@ jobs:
         echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" >> keystore.properties
         echo "keyAlias=alexandria" >> keystore.properties
         echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> keystore.properties
+        # also place a copy where the app module can definitely find it
+        cp keystore.properties app/keystore.properties
+
+    - name: Verify keystore credentials
+      run: |
+        ls -la app/keystore || true
+        # validate store password and alias; exit non-zero if wrong
+        keytool -list -keystore app/keystore/alexandria-release.jks \
+          -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
+          -alias alexandria \
+          -keypass "${{ secrets.KEY_PASSWORD }}" \
+          -v
+      shell: bash
 
     - name: Build Release APK
       run: ./gradlew assembleRelease
