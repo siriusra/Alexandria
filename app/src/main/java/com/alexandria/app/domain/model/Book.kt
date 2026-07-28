@@ -19,8 +19,8 @@ data class Book(
     val dateAdded: Long = System.currentTimeMillis(),
     val dateFinished: Long? = null
 ) {
-    // Helper for JSON import - creates a copy with safe defaults
     fun withDefaults(): Book = copy(
+        status = status ?: ReadingStatus.QUIERO_LEER,
         genre = genre ?: "",
         coverUrl = coverUrl,
         coverLocalPath = coverLocalPath,
