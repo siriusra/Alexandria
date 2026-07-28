@@ -301,9 +301,18 @@ fun CoverSourceRow(
 
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             if (isEnabled) {
-                // Move buttons would go here
+                if (onMoveUp != null) {
+                    IconButton(onClick = onMoveUp, modifier = Modifier.size(32.dp)) {
+                        Icon(Icons.Filled.ArrowUpward, contentDescription = "Subir", modifier = Modifier.size(20.dp))
+                    }
+                }
+                if (onMoveDown != null) {
+                    IconButton(onClick = onMoveDown, modifier = Modifier.size(32.dp)) {
+                        Icon(Icons.Filled.ArrowDownward, contentDescription = "Bajar", modifier = Modifier.size(20.dp))
+                    }
+                }
             }
-            Checkbox(checked = true, onCheckedChange = { })
+            Checkbox(checked = isEnabled, onCheckedChange = { onToggle() })
         }
     }
 }
