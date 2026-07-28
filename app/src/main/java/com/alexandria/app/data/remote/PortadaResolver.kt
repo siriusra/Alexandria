@@ -135,6 +135,86 @@ class PortadaResolver {
         }
     }
 
+    suspend fun buscarCoversGoogleBooks(query: String, maxResults: Int = 20): List<GoogleBookItem> = withContext(Dispatchers.IO) {
+        try {
+            val encodedQuery = java.net.URLEncoder.encode(query, "UTF-8")
+            val apiKey = BuildConfig.GOOGLE_BOOKS_API_KEY
+            val keyParam = if (apiKey.isNotBlank()) "&key=$apiKey" else ""
+            val url = "https://www.googleapis.com/books/v1/volumes?q=$encodedQuery&maxResults=$maxResults&printType=books$keyParam"
+
+            val request = Request.Builder()
+                .url(url)
+                .header("User-Agent", "Alexandria/1.0 (Android Book Tracker)")
+                .build()
+            val response = client.newCall(request).execute()
+            if (!response.isSuccessful) return@withContext emptyList()
+            val body = response.body?.string() ?: return@withContext emptyList()
+            val json = JSONObject(body)
+            val items = json.optJSONArray("items") ?: return@withContext emptyList()
+
+            val results = mutableListOf<GoogleBookItem>()
+            for (i in 0 until items.length().coerceAtMost(maxResults)) {
+                val item = items.getJSONObject(i)
+                val id = item.optString("id", "")
+                val vi = item.optJSONObject("volumeInfo") ?: continue
+                val title = vi.optString("title", "")
+                if (title.isBlank()) continue
+
+                val authors = vi.optJSONArray("authors")?.let { arr ->
+                    (0 until arr.length()).map { arr.optString(it, "") }.filter { it.isNotBlank() }
+                }
+
+                val imageLinks = vi.optJSONObject("imageLinks")
+                var thumbnail: String? = null
+                var smallThumbnail: String? = null
+                if (imageLinks != null) {
+                    thumbnail = imageLinks.optString("thumbnail", null)
+                    smallThumbnail = imageLinks.optString("smallThumbnail", null)
+                }
+
+                val identifiers = vi.optJSONArray("industryIdentifiers")?.let { arr ->
+                    (0 until arr.length()).mapNotNull {
+                        val obj = arr.optJSONObject(it) ?: return@mapNotNull null
+                        val type = obj.optString("type", "")
+                        val identifier = obj.optString("identifier", "")
+                        if (type.isNotBlank() && identifier.isNotBlank())
+                            IndustryIdentifier(type, identifier)
+                        else null
+                    }
+                }
+
+                val publishedDate = vi.optString("publishedDate", null)
+                val pageCount = vi.optInt("pageCount", 0).takeIf { it > 0 }
+                val categories = vi.optJSONArray("categories")?.let { arr ->
+                    (0 until arr.length()).map { arr.optString(it, "") }.filter { it.isNotBlank() }
+                }
+
+                results.add(GoogleBookItem(
+                    id = id,
+                    volumeInfo = VolumeInfo(
+                        title = title,
+                        authors = authors,
+                        publishedDate = publishedDate,
+                        description = null,
+                        pageCount = pageCount,
+                        imageLinks = ImageLinks(
+                            smallThumbnail = smallThumbnail,
+                            thumbnail = thumbnail
+                        ),
+                        categories = categories,
+                        industryIdentifiers = identifiers,
+                        seriesName = null
+                    )
+                ))
+            }
+            Log.d(TAG, "Google Books search: found ${results.size} results for '$query'")
+            results
+        } catch (e: Exception) {
+            Log.e(TAG, "Error searching Google Books covers", e)
+            emptyList()
+        }
+    }
+
     // ===== NEW COVER RESOLVER WITH 7 SOURCES =====
 
     suspend fun resolverCover(

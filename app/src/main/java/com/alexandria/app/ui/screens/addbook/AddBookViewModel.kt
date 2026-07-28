@@ -128,7 +128,7 @@ class AddBookViewModel @Inject constructor(
                 coverSearchError = null
             )
             try {
-                val results = repository.searchCovers(query, com.alexandria.app.domain.model.CoverProvider.OPEN_LIBRARY)
+                val results = repository.searchCovers(query)
                 _uiState.value = _uiState.value.copy(
                     coverSearchResults = results,
                     isSearchingCover = false,

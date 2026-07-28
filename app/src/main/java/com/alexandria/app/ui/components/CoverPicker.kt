@@ -129,7 +129,7 @@ fun CoverPicker(
                         modifier = Modifier.fillMaxWidth(),
                         enabled = searchQuery.isNotBlank() && !isSearching
                     ) {
-                        Text("Buscar en Open Library")
+                        Text("Buscar portadas")
                     }
 
                     if (isSearching) {

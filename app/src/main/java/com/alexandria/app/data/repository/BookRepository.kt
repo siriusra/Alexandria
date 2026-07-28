@@ -6,7 +6,6 @@ import com.alexandria.app.data.local.entity.BookEntity
 import com.alexandria.app.data.remote.GoogleBookItem
 import com.alexandria.app.data.remote.PortadaResolver
 import com.alexandria.app.domain.model.Book
-import com.alexandria.app.domain.model.CoverProvider
 import com.alexandria.app.domain.model.ReadingStatus
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
@@ -88,15 +87,29 @@ class BookRepository @Inject constructor(
         bookDao.deleteBookById(bookId)
     }
 
-    suspend fun searchCovers(query: String, provider: CoverProvider): List<GoogleBookItem> {
+    suspend fun searchCovers(query: String): List<GoogleBookItem> {
         return try {
-            when (provider) {
-                CoverProvider.OPEN_LIBRARY -> {
-                    val trimmedQuery = query.trim()
-                    if (trimmedQuery.isBlank()) return emptyList()
-                    portadaResolver.buscarCoversOpenLibrary(trimmedQuery)
+            val trimmedQuery = query.trim()
+            if (trimmedQuery.isBlank()) return emptyList()
+
+            val openLibraryResults = portadaResolver.buscarCoversOpenLibrary(trimmedQuery)
+            val googleBooksResults = portadaResolver.buscarCoversGoogleBooks(trimmedQuery)
+
+            val seenIds = mutableSetOf<String>()
+            val merged = mutableListOf<GoogleBookItem>()
+
+            for (item in openLibraryResults) {
+                merged.add(item)
+                seenIds.add(item.id)
+            }
+            for (item in googleBooksResults) {
+                if (item.id !in seenIds) {
+                    merged.add(item)
+                    seenIds.add(item.id)
                 }
             }
+
+            merged
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
