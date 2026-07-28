@@ -347,7 +347,7 @@ class SettingsViewModel @Inject constructor(
 
                 var importedCount = 0
                 books.forEach { book ->
-                    repository.addBook(book.copy(id = 0))
+                    repository.addBook(book.withDefaults().copy(id = 0))
                     importedCount++
                 }
 

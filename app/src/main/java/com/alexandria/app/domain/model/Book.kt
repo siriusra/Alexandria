@@ -18,4 +18,18 @@ data class Book(
     val isbn: String? = null,
     val dateAdded: Long = System.currentTimeMillis(),
     val dateFinished: Long? = null
-)
+) {
+    // Helper for JSON import - creates a copy with safe defaults
+    fun withDefaults(): Book = copy(
+        genre = genre ?: "",
+        coverUrl = coverUrl,
+        coverLocalPath = coverLocalPath,
+        rating = rating,
+        notes = notes,
+        pageCount = pageCount,
+        currentPage = currentPage ?: 0,
+        isbn = isbn,
+        dateAdded = dateAdded,
+        dateFinished = dateFinished
+    )
+}

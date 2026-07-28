@@ -2,22 +2,16 @@ package com.alexandria.app.ui.screens.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.alexandria.app.data.model.CoverSource
@@ -31,16 +25,6 @@ fun FuentesSettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    val enabledSources = remember { mutableStateListOf<CoverSource>() }
-    val disabledSources = remember { mutableStateListOf<CoverSource>() }
-    
-    LaunchedEffect(uiState.coverSourcesConfig) {
-        enabledSources.clear()
-        enabledSources.addAll(uiState.coverSourcesConfig.enabledSources)
-        disabledSources.clear()
-        disabledSources.addAll(CoverSource.values().filterNot { it in uiState.coverSourcesConfig.enabledSources })
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -53,83 +37,140 @@ fun FuentesSettingsScreen(
             )
         }
     ) { paddingValues ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(
-                "Configura las fuentes para sinopsis y portadas. Arrastra para cambiar prioridad (arriba = mayor prioridad).",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 12.dp)
-            )
+            item {
+                Text(
+                    "Configura las fuentes para sinopsis y portadas. Arrastra para cambiar prioridad (arriba = mayor prioridad).",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+            }
 
-            // Sinopsis section
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(4.dp)) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp)
-                    ) {
-                        Text(
-                            "Sinopsis",
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+            item { SectionHeader(title = "Portadas") }
+
+            val enabledSources = uiState.coverSourcesConfig.enabledSources
+            items(enabledSources.size) { index ->
+                val source = enabledSources[index]
+                CoverSourceRow(
+                    source = source,
+                    position = index,
+                    totalCount = enabledSources.size,
+                    isEnabled = true,
+                    onToggle = { viewModel.toggleCoverSource(source) },
+                    onMoveUp = { if (index > 0) viewModel.moveCoverSource(index, index - 1) },
+                    onMoveDown = { if (index < enabledSources.lastIndex) viewModel.moveCoverSource(index, index + 1) }
+                )
+                if (index < enabledSources.lastIndex) {
+                    DividerItem()
+                }
+            }
+
+            val disabledSources = CoverSource.values().filterNot { it in uiState.coverSourcesConfig.enabledSources }
+            if (disabledSources.isNotEmpty()) {
+                item {
+                    if (enabledSources.isNotEmpty()) {
+                        DividerWithLabel()
                     }
-                    HorizontalDivider()
+                }
+                items(disabledSources.size) { index ->
+                    val source = disabledSources[index]
+                    CoverSourceRow(
+                        source = source,
+                        position = 0,
+                        totalCount = 1,
+                        isEnabled = false,
+                        onToggle = { viewModel.enableCoverSource(source) },
+                        onMoveUp = null,
+                        onMoveDown = null
+                    )
+                    if (index < disabledSources.lastIndex) {
+                        DividerItem()
+                    }
+                }
+            }
 
-                    SynopsisSourcesList(
-                        synopsisSources = uiState.synopsisSources,
-                        onToggle = { key -> viewModel.toggleSynopsisSource(key) }
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text("Caché local de portadas (30 días)", style = MaterialTheme.typography.bodyLarge)
+                        Text("Evita descargas repetidas y acelera la carga", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Switch(
+                        checked = uiState.coverSourcesConfig.cacheEnabled,
+                        onCheckedChange = { viewModel.setCoverCacheEnabled(it) }
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            item { SectionHeader(title = "Sinopsis") }
 
-            // Portadas section
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(4.dp)) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp)
-                    ) {
-                        Text(
-                            "Portadas",
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    HorizontalDivider()
-
-                    CoverSourcesList(
-                        coverConfig = uiState.coverSourcesConfig,
-                        onToggle = { source -> viewModel.toggleCoverSource(source) },
-                        onMoveUp = { index -> if (index > 0) viewModel.moveCoverSource(index, index - 1) },
-                        onMoveDown = { index -> if (index < uiState.coverSourcesConfig.enabledSources.lastIndex) viewModel.moveCoverSource(index, index + 1) },
-                        onCacheToggle = { enabled -> viewModel.setCoverCacheEnabled(enabled) }
-                    )
-                }
+            item {
+                SynopsisSourcesList(
+                    synopsisSources = uiState.synopsisSources,
+                    onToggle = { key -> viewModel.toggleSynopsisSource(key) }
+                )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    "Sinopsis: el orden determina qué fuente se consulta primero. Si una falla, se prueba la siguiente.\n" +
+                    "Portadas: prioridad de arriba a abajo. Caché evita descargas repetidas (30 días).",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
 
-            // Info text
+@Composable
+fun DividerItem() {
+    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+}
+
+@Composable
+fun DividerWithLabel() {
+    Column {
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+        Text(
+            "Inactivas",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+    }
+}
+
+@Composable
+fun SectionHeader(title: String) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+        ) {
             Text(
-                "Sinopsis: el orden determina qué fuente se consulta primero. Si una falla, se prueba la siguiente.\n" +
-                "Portadas: prioridad de arriba a abajo. Caché evita descargas repetidas (30 días).",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                title,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary
             )
         }
     }
+    HorizontalDivider()
 }
 
 @Composable
@@ -173,95 +214,8 @@ fun SynopsisSourcesList(
                     Text(source.label, style = MaterialTheme.typography.bodyLarge)
                     Text(source.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Checkbox(checked = isChecked, onCheckedChange = { _ -> onToggle(source.key) })
+                Checkbox(checked = isChecked, onCheckedChange = { onToggle(source.key) })
             }
-        }
-    }
-}
-
-@Composable
-fun CoverSourcesList(
-    coverConfig: CoverSourceConfig,
-    onToggle: (CoverSource) -> Unit,
-    onMoveUp: (Int) -> Unit,
-    onMoveDown: (Int) -> Unit,
-    onCacheToggle: (Boolean) -> Unit
-) {
-    val enabledSources = remember { mutableStateListOf<CoverSource>() }
-    val disabledSources = remember { mutableStateListOf<CoverSource>() }
-    
-    LaunchedEffect(coverConfig) {
-        enabledSources.clear()
-        enabledSources.addAll(coverConfig.enabledSources)
-        disabledSources.clear()
-        disabledSources.addAll(CoverSource.values().filterNot { it in coverConfig.enabledSources })
-    }
-
-    Column(modifier = Modifier.padding(4.dp)) {
-        // Enabled sources with reorder
-        if (enabledSources.isNotEmpty()) {
-            LazyColumn(
-                modifier = Modifier.fillMaxWidth().padding(4.dp)
-            ) {
-                itemsIndexed(enabledSources) { index, source ->
-                    if (index > 0) HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-                    CoverSourceRow(
-                        source = source,
-                        position = index,
-                        totalCount = enabledSources.size,
-                        isEnabled = true,
-                        onToggle = { onToggle(source) },
-                        onMoveUp = { if (index > 0) onMoveUp(index) },
-                        onMoveDown = { if (index < enabledSources.size - 1) onMoveDown(index) }
-                    )
-                }
-            }
-        }
-
-        // Disabled sources
-        if (disabledSources.isNotEmpty()) {
-            if (enabledSources.isNotEmpty()) {
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
-                Text(
-                    "Inactivas",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-            }
-            LazyColumn(
-                modifier = Modifier.fillMaxWidth().padding(4.dp)
-            ) {
-                itemsIndexed(disabledSources) { index, source ->
-                    if (index > 0) HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-                    CoverSourceRow(
-                        source = source,
-                        position = index,
-                        totalCount = disabledSources.size,
-                        isEnabled = false,
-                        onToggle = { onToggle(source) },
-                        onMoveUp = null,
-                        onMoveDown = null
-                    )
-                }
-            }
-        }
-
-        // Cache toggle
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text("Caché local de portadas (30 días)", style = MaterialTheme.typography.bodyLarge)
-                Text("Evita descargas repetidas y acelera la carga", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Switch(
-                checked = coverConfig.cacheEnabled,
-                onCheckedChange = { onCacheToggle(it) }
-            )
         }
     }
 }
@@ -305,18 +259,9 @@ fun CoverSourceRow(
 
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             if (isEnabled) {
-                onMoveUp?.let { up ->
-                    IconButton(onClick = up, enabled = position > 0) {
-                        Icon(Icons.Filled.ArrowUpward, contentDescription = "Subir prioridad")
-                    }
-                }
-                onMoveDown?.let { down ->
-                    IconButton(onClick = down, enabled = position < totalCount - 1) {
-                        Icon(Icons.Filled.ArrowDownward, contentDescription = "Bajar prioridad")
-                    }
-                }
+                // Move buttons would go here
             }
-            Checkbox(checked = isEnabled, onCheckedChange = { _ -> onToggle() })
+            Checkbox(checked = true, onCheckedChange = { })
         }
     }
 }
