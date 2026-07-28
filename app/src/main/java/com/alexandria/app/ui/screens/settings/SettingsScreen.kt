@@ -220,14 +220,7 @@ fun SettingsScreen(
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                         )
-                        val sinopsisCount = listOf(
-                            uiState.synopsisSources.isbn,
-                            uiState.synopsisSources.todostuslibros,
-                            uiState.synopsisSources.casaDelLibro,
-                            uiState.synopsisSources.openLibrary,
-                            uiState.synopsisSources.wikipedia,
-                            uiState.synopsisSources.googleBooks
-                        ).count { it }
+                        val sinopsisCount = uiState.synopsisSources.enabledSources.size
                         val portadaCount = uiState.coverSourcesConfig.enabledSources.size
                         Text(
                             "$sinopsisCount sinopsis + $portadaCount portadas activas",

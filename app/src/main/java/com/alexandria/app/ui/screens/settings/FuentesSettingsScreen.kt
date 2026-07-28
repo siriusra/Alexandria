@@ -6,6 +6,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -116,11 +118,57 @@ fun FuentesSettingsScreen(
 
             item { SectionHeader(title = "Sinopsis") }
 
-            item {
-                SynopsisSourcesList(
-                    synopsisSources = uiState.synopsisSources,
-                    onToggle = { key -> viewModel.toggleSynopsisSource(key) }
+            val synopsisMeta = mapOf(
+                "isbn" to SourceOption("isbn", "ISBN (OpenLibrary)", "Búsqueda directa por ISBN"),
+                "todostuslibros" to SourceOption("todostuslibros", "TodosTusLibros", "Sinopsis de todostuslibros.com"),
+                "casa_del_libro" to SourceOption("casa_del_libro", "Casa del Libro", "Sinopsis de casadellibro.com"),
+                "openlibrary" to SourceOption("openlibrary", "OpenLibrary (español)", "OpenLibrary filtrado por idioma"),
+                "wikipedia" to SourceOption("wikipedia", "Wikipedia", "Wikipedia en español"),
+                "google_books" to SourceOption("google_books", "Google Books", "Google Books con restricción de idioma")
+            )
+            val synopsisEnabled = uiState.synopsisSources.enabledSources
+            items(synopsisEnabled.size) { index ->
+                val key = synopsisEnabled[index]
+                val meta = synopsisMeta[key] ?: return@items
+                SynopsisSourceRow(
+                    label = meta.label,
+                    description = meta.description,
+                    position = index,
+                    totalCount = synopsisEnabled.size,
+                    onToggle = { viewModel.toggleSynopsisSource(key) },
+                    onMoveUp = { if (index > 0) viewModel.moveSynopsisSource(index, index - 1) },
+                    onMoveDown = { if (index < synopsisEnabled.lastIndex) viewModel.moveSynopsisSource(index, index + 1) }
                 )
+                if (index < synopsisEnabled.lastIndex) {
+                    DividerItem()
+                }
+            }
+
+            val allSynopsisKeys = listOf("isbn", "todostuslibros", "casa_del_libro", "openlibrary", "wikipedia", "google_books")
+            val synopsisDisabled = allSynopsisKeys.filterNot { it in uiState.synopsisSources.enabledSources }
+            if (synopsisDisabled.isNotEmpty()) {
+                item {
+                    if (synopsisEnabled.isNotEmpty()) {
+                        DividerWithLabel()
+                    }
+                }
+                items(synopsisDisabled.size) { index ->
+                    val key = synopsisDisabled[index]
+                    val meta = synopsisMeta[key] ?: return@items
+                    SynopsisSourceRow(
+                        label = meta.label,
+                        description = meta.description,
+                        position = 0,
+                        totalCount = 1,
+                        isEnabled = false,
+                        onToggle = { viewModel.toggleSynopsisSource(key) },
+                        onMoveUp = null,
+                        onMoveDown = null
+                    )
+                    if (index < synopsisDisabled.lastIndex) {
+                        DividerItem()
+                    }
+                }
             }
 
             item {
@@ -174,48 +222,42 @@ fun SectionHeader(title: String) {
 }
 
 @Composable
-fun SynopsisSourcesList(
-    synopsisSources: com.alexandria.app.data.local.SynopsisSourceConfig,
-    onToggle: (String) -> Unit
+fun SynopsisSourceRow(
+    label: String,
+    description: String,
+    position: Int,
+    totalCount: Int,
+    isEnabled: Boolean = true,
+    onToggle: () -> Unit,
+    onMoveUp: (() -> Unit)?,
+    onMoveDown: (() -> Unit)?
 ) {
-    val sources = listOf(
-        SourceOption("isbn", "ISBN (OpenLibrary)", "Búsqueda directa por ISBN"),
-        SourceOption("todostuslibros", "TodosTusLibros", "Sinopsis de todostuslibros.com"),
-        SourceOption("casa_del_libro", "Casa del Libro", "Sinopsis de casadellibro.com"),
-        SourceOption("openlibrary", "OpenLibrary (español)", "OpenLibrary filtrado por idioma"),
-        SourceOption("wikipedia", "Wikipedia", "Wikipedia en español"),
-        SourceOption("google_books", "Google Books", "Google Books con restricción de idioma")
-    )
-
-    Column(
-        modifier = Modifier.padding(4.dp),
-        verticalArrangement = Arrangement.spacedBy(0.dp)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp, horizontal = 16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        sources.forEachIndexed { index, source ->
-            if (index > 0) HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-            val isChecked = when (source.key) {
-                "isbn" -> synopsisSources.isbn
-                "todostuslibros" -> synopsisSources.todostuslibros
-                "casa_del_libro" -> synopsisSources.casaDelLibro
-                "openlibrary" -> synopsisSources.openLibrary
-                "wikipedia" -> synopsisSources.wikipedia
-                "google_books" -> synopsisSources.googleBooks
-                else -> false
-            }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onToggle(source.key) }
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(source.label, style = MaterialTheme.typography.bodyLarge)
-                    Text(source.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Column(modifier = Modifier.weight(1f)) {
+            Text(label, style = MaterialTheme.typography.bodyLarge)
+            Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            if (isEnabled) {
+                if (onMoveUp != null) {
+                    IconButton(onClick = onMoveUp, modifier = Modifier.size(32.dp)) {
+                        Icon(Icons.Filled.ArrowUpward, contentDescription = "Subir", modifier = Modifier.size(20.dp))
+                    }
                 }
-                Checkbox(checked = isChecked, onCheckedChange = { onToggle(source.key) })
+                if (onMoveDown != null) {
+                    IconButton(onClick = onMoveDown, modifier = Modifier.size(32.dp)) {
+                        Icon(Icons.Filled.ArrowDownward, contentDescription = "Bajar", modifier = Modifier.size(20.dp))
+                    }
+                }
             }
+            Checkbox(checked = isEnabled, onCheckedChange = { onToggle() })
         }
     }
 }

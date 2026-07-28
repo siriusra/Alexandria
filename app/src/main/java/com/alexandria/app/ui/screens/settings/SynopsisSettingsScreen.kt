@@ -69,15 +69,7 @@ fun SynopsisSettingsScreen(
                     val checked = uiState.synopsisSources
                     sources.forEachIndexed { index, source ->
                         if (index > 0) HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-                        val isChecked = when (source.key) {
-                            "isbn" -> checked.isbn
-                            "todostuslibros" -> checked.todostuslibros
-                            "casa_del_libro" -> checked.casaDelLibro
-                            "openlibrary" -> checked.openLibrary
-                            "wikipedia" -> checked.wikipedia
-                            "google_books" -> checked.googleBooks
-                            else -> false
-                        }
+                        val isChecked = checked.isEnabled(source.key)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()

@@ -18,25 +18,41 @@ import kotlinx.coroutines.flow.map
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
 data class SynopsisSourceConfig(
-    val isbn: Boolean = true,
-    val casaDelLibro: Boolean = true,
-    val openLibrary: Boolean = true,
-    val wikipedia: Boolean = true,
-    val todostuslibros: Boolean = true,
-    val googleBooks: Boolean = true
-)
+    val enabledSources: List<String> = defaultOrder
+) {
+    fun isEnabled(key: String): Boolean = enabledSources.contains(key)
+
+    fun toggleSource(key: String): SynopsisSourceConfig {
+        return if (enabledSources.contains(key)) {
+            copy(enabledSources = enabledSources.filter { it != key })
+        } else {
+            copy(enabledSources = enabledSources + key)
+        }
+    }
+
+    fun moveSource(fromIndex: Int, toIndex: Int): SynopsisSourceConfig {
+        val newList = enabledSources.toMutableList()
+        val item = newList.removeAt(fromIndex)
+        newList.add(toIndex, item)
+        return copy(enabledSources = newList)
+    }
+
+    fun toJson(): String = Gson().toJson(this)
+
+    companion object {
+        val defaultOrder = listOf("isbn", "todostuslibros", "casa_del_libro", "openlibrary", "wikipedia", "google_books")
+
+        fun fromJson(json: String): SynopsisSourceConfig =
+            Gson().fromJson(json, SynopsisSourceConfig::class.java)
+    }
+}
 
 class PreferencesManager(private val context: Context) {
 
     companion object {
         val IS_DARK_THEME = booleanPreferencesKey("is_dark_theme")
         val ACCENT_COLOR_INDEX = intPreferencesKey("accent_color_index")
-        val SYNOPSIS_ISBN = booleanPreferencesKey("synopsis_isbn")
-        val SYNOPSIS_CASA_DEL_LIBRO = booleanPreferencesKey("synopsis_casa_del_libro")
-        val SYNOPSIS_OPENLIBRARY = booleanPreferencesKey("synopsis_openlibrary")
-        val SYNOPSIS_WIKIPEDIA = booleanPreferencesKey("synopsis_wikipedia")
-        val SYNOPSIS_TODOSTUSLIBROS = booleanPreferencesKey("synopsis_todostuslibros")
-        val SYNOPSIS_GOOGLE_BOOKS = booleanPreferencesKey("synopsis_google_books")
+        val SYNOPSIS_SOURCES_CONFIG = stringPreferencesKey("synopsis_sources_config")
         val COVER_SOURCES_CONFIG = stringPreferencesKey("cover_sources_config")
         val COVER_CACHE_ENABLED = booleanPreferencesKey("cover_cache_enabled")
 
@@ -51,15 +67,17 @@ class PreferencesManager(private val context: Context) {
         prefs[ACCENT_COLOR_INDEX] ?: 0
     }
 
-    val synopsisSources: Flow<SynopsisSourceConfig> = combine(
-        context.dataStore.data.map { it[SYNOPSIS_ISBN] ?: true },
-        context.dataStore.data.map { it[SYNOPSIS_CASA_DEL_LIBRO] ?: true },
-        context.dataStore.data.map { it[SYNOPSIS_OPENLIBRARY] ?: true },
-        context.dataStore.data.map { it[SYNOPSIS_WIKIPEDIA] ?: true },
-        context.dataStore.data.map { it[SYNOPSIS_TODOSTUSLIBROS] ?: true },
-        context.dataStore.data.map { it[SYNOPSIS_GOOGLE_BOOKS] ?: true }
-    ) { arr ->
-        SynopsisSourceConfig(arr[0], arr[1], arr[2], arr[3], arr[4], arr[5])
+    val synopsisSources: Flow<SynopsisSourceConfig> = context.dataStore.data.map { prefs ->
+        val json = prefs[SYNOPSIS_SOURCES_CONFIG]
+        if (json != null && json.isNotBlank()) {
+            try {
+                SynopsisSourceConfig.fromJson(json)
+            } catch (e: Exception) {
+                SynopsisSourceConfig()
+            }
+        } else {
+            SynopsisSourceConfig()
+        }
     }
 
     val coverSourcesConfig: Flow<CoverSourceConfig> = context.dataStore.data.map { prefs ->
@@ -91,16 +109,9 @@ class PreferencesManager(private val context: Context) {
         }
     }
 
-    suspend fun setSynopsisSourceEnabled(source: String, enabled: Boolean) {
+    suspend fun setSynopsisSourcesConfig(config: SynopsisSourceConfig) {
         context.dataStore.edit { prefs ->
-            when (source) {
-                "isbn" -> prefs[SYNOPSIS_ISBN] = enabled
-                "casa_del_libro" -> prefs[SYNOPSIS_CASA_DEL_LIBRO] = enabled
-                "openlibrary" -> prefs[SYNOPSIS_OPENLIBRARY] = enabled
-                "wikipedia" -> prefs[SYNOPSIS_WIKIPEDIA] = enabled
-                "todostuslibros" -> prefs[SYNOPSIS_TODOSTUSLIBROS] = enabled
-                "google_books" -> prefs[SYNOPSIS_GOOGLE_BOOKS] = enabled
-            }
+            prefs[SYNOPSIS_SOURCES_CONFIG] = config.toJson()
         }
     }
 

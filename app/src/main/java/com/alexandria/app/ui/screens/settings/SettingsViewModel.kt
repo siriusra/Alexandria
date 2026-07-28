@@ -94,26 +94,19 @@ class SettingsViewModel @Inject constructor(
     fun toggleSynopsisSource(source: String) {
         viewModelScope.launch {
             val current = _uiState.value.synopsisSources
-            val enabled = when (source) {
-                "isbn" -> current.isbn
-                "casa_del_libro" -> current.casaDelLibro
-                "openlibrary" -> current.openLibrary
-                "wikipedia" -> current.wikipedia
-                "todostuslibros" -> current.todostuslibros
-                "google_books" -> current.googleBooks
-                else -> return@launch
+            val newConfig = current.toggleSource(source)
+            if (newConfig.enabledSources.isNotEmpty()) {
+                preferencesManager.setSynopsisSourcesConfig(newConfig)
             }
-            val anyEnabled = when (source) {
-                "isbn" -> !enabled || current.casaDelLibro || current.openLibrary || current.wikipedia || current.todostuslibros || current.googleBooks
-                "casa_del_libro" -> current.isbn || !enabled || current.openLibrary || current.wikipedia || current.todostuslibros || current.googleBooks
-                "openlibrary" -> current.isbn || current.casaDelLibro || !enabled || current.wikipedia || current.todostuslibros || current.googleBooks
-                "wikipedia" -> current.isbn || current.casaDelLibro || current.openLibrary || !enabled || current.todostuslibros || current.googleBooks
-                "todostuslibros" -> current.isbn || current.casaDelLibro || current.openLibrary || current.wikipedia || !enabled || current.googleBooks
-                "google_books" -> current.isbn || current.casaDelLibro || current.openLibrary || current.wikipedia || current.todostuslibros || !enabled
-                else -> return@launch
-            }
-            if (anyEnabled) {
-                preferencesManager.setSynopsisSourceEnabled(source, !enabled)
+        }
+    }
+
+    fun moveSynopsisSource(fromIndex: Int, toIndex: Int) {
+        viewModelScope.launch {
+            val current = _uiState.value.synopsisSources
+            if (fromIndex in current.enabledSources.indices && toIndex in current.enabledSources.indices) {
+                val newConfig = current.moveSource(fromIndex, toIndex)
+                preferencesManager.setSynopsisSourcesConfig(newConfig)
             }
         }
     }
