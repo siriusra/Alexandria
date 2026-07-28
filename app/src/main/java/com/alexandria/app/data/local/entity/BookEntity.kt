@@ -9,7 +9,7 @@ data class BookEntity(
     val id: Long = 0,
     val title: String,
     val author: String,
-    val genre: String,
+    val genre: String? = null,
     val seriesName: String? = null,
     val seriesOrder: Int? = null,
     val year: Int? = null,

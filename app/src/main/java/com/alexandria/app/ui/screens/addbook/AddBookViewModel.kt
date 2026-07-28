@@ -58,7 +58,7 @@ class AddBookViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     title = book.title,
                     author = book.author,
-                    genre = book.genre,
+                    genre = book.genre ?: "",
                     seriesName = book.seriesName ?: "",
                     seriesOrder = book.seriesOrder?.toString() ?: "",
                     year = book.year?.toString() ?: "",

@@ -451,7 +451,7 @@ class SettingsViewModel @Inject constructor(
                     listOf(
                         book.title.escapeCsv(),
                         book.author.escapeCsv(),
-                        book.genre.escapeCsv(),
+                        book.genre?.escapeCsv() ?: "",
                         book.seriesName?.escapeCsv() ?: "",
                         book.seriesOrder?.toString() ?: "",
                         book.year?.toString() ?: "",

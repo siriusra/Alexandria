@@ -139,7 +139,7 @@ fun BookDetailScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = book.genre,
+                        text = book.genre ?: "",
                         style = MaterialTheme.typography.bodyLarge
                     )
 
