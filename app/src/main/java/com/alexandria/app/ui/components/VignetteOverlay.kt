@@ -1,16 +1,20 @@
 package com.alexandria.app.ui.components
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RadialGradientShader
 import androidx.compose.ui.graphics.ShaderBrush
 import com.alexandria.app.domain.model.VisualMode
 
-fun Modifier.vignetteOverlay(visualMode: VisualMode): Modifier {
-    if (visualMode != VisualMode.IMMERSIVE) return this
-    return this.drawBehind {
+@Composable
+fun VignetteOverlay(visualMode: VisualMode) {
+    if (visualMode != VisualMode.IMMERSIVE) return
+
+    Canvas(modifier = Modifier.fillMaxSize()) {
         drawRect(
             brush = ShaderBrush(
                 RadialGradientShader(

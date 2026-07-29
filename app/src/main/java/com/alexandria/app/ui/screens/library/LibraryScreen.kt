@@ -7,17 +7,21 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.alexandria.app.domain.model.ReadingStatus
+import com.alexandria.app.domain.model.VisualMode
 import com.alexandria.app.ui.components.BookCarousel
 import com.alexandria.app.ui.components.BookGrid
 import com.alexandria.app.ui.components.BookList
 import com.alexandria.app.ui.components.ViewMode
 import com.alexandria.app.ui.components.ViewToggle
+import com.alexandria.app.ui.components.bookshelf.BookshelfEmptyState
 import com.alexandria.app.ui.components.bookshelf.ShelfView
+import com.alexandria.app.ui.theme.LocalVisualMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,6 +31,7 @@ fun LibraryScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showSortMenu by remember { mutableStateOf(false) }
+    val visualMode = LocalVisualMode.current
 
     Scaffold(
         topBar = {
@@ -76,16 +81,24 @@ fun LibraryScreen(
             )
 
             if (uiState.books.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(32.dp)
-                ) {
-                    Text(
-                        text = "No hay libros con estos filtros",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                if (visualMode == VisualMode.IMMERSIVE) {
+                    BookshelfEmptyState(
+                        message = "No hay libros aquí",
+                        modifier = Modifier.fillMaxSize()
                     )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No hay libros con estos filtros",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             } else {
                 when (uiState.viewMode) {
