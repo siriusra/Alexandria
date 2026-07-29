@@ -6,6 +6,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.alexandria.app.ui.navigation.BottomNavItem
@@ -18,6 +20,7 @@ fun BottomNavBar(
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+    val hapticFeedback = LocalHapticFeedback.current
 
     NavigationBar(
         modifier = modifier
@@ -38,6 +41,7 @@ fun BottomNavBar(
                 selected = currentRoute == item.route,
                 onClick = {
                     if (currentRoute != item.route) {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         navController.navigate(item.route) {
                             popUpTo(navController.graph.startDestinationId) {
                                 saveState = true

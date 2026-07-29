@@ -14,6 +14,7 @@ import com.alexandria.app.data.model.CoverSource
 import com.alexandria.app.data.model.CoverSourceConfig
 import com.alexandria.app.domain.model.Book
 import com.alexandria.app.domain.model.ReadingStatus
+import com.alexandria.app.domain.model.VisualMode
 import com.alexandria.app.data.repository.BookRepository
 import com.alexandria.app.update.UpdateChecker
 import com.alexandria.app.update.UpdateInfo
@@ -32,6 +33,7 @@ import javax.inject.Inject
 data class SettingsUiState(
     val isDarkTheme: Boolean = false,
     val accentColorIndex: Int = 0,
+    val visualMode: VisualMode = VisualMode.CLASSIC,
     val synopsisSources: com.alexandria.app.data.local.SynopsisSourceConfig = com.alexandria.app.data.local.SynopsisSourceConfig(),
     val coverSourcesConfig: CoverSourceConfig = CoverSourceConfig(),
     val exportMessage: String? = null,
@@ -77,6 +79,11 @@ class SettingsViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(coverSourcesConfig = _uiState.value.coverSourcesConfig.copy(cacheEnabled = enabled))
             }
         }
+        viewModelScope.launch {
+            preferencesManager.visualMode.collect { mode ->
+                _uiState.value = _uiState.value.copy(visualMode = mode)
+            }
+        }
     }
 
     fun toggleTheme() {
@@ -88,6 +95,12 @@ class SettingsViewModel @Inject constructor(
     fun setAccentColorIndex(index: Int) {
         viewModelScope.launch {
             preferencesManager.setAccentColorIndex(index)
+        }
+    }
+
+    fun setVisualMode(mode: VisualMode) {
+        viewModelScope.launch {
+            preferencesManager.setVisualMode(mode)
         }
     }
 

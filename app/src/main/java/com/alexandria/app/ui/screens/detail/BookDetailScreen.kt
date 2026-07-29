@@ -29,9 +29,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.alexandria.app.domain.model.ReadingStatus
+import com.alexandria.app.domain.model.VisualMode
 import com.alexandria.app.ui.components.PlaceholderPortada
 import com.alexandria.app.ui.components.ReadingStatusBadge
+import com.alexandria.app.ui.components.coverEdgeFade
+import com.alexandria.app.ui.components.coverGradientScrim
 import com.alexandria.app.ui.components.uiConfig
+import com.alexandria.app.ui.theme.LocalVisualMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,52 +68,97 @@ fun BookDetailScreen(
                 )
             }
         ) { paddingValues ->
+            val scrollState = rememberScrollState()
+            val visualMode = LocalVisualMode.current
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(scrollState)
             ) {
+                val coverUrl = uiState.coverUrl ?: book.coverUrl ?: book.coverLocalPath
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(300.dp)
+                        .then(
+                            if (visualMode == VisualMode.IMMERSIVE) {
+                                Modifier.heightIn(min = 350.dp)
+                            } else {
+                                Modifier.height(300.dp)
+                            }
+                        )
+                        .graphicsLayer {
+                            translationY = scrollState.value * 0.15f
+                        }
                 ) {
-                    val coverUrl = uiState.coverUrl ?: book.coverUrl ?: book.coverLocalPath
                     if (coverUrl != null) {
                         AsyncImage(
                             model = coverUrl,
                             contentDescription = book.title,
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .coverGradientScrim(book.genre, visualMode),
                             contentScale = ContentScale.Crop
                         )
                     } else {
                         PlaceholderPortada(
                             titulo = book.title,
                             autor = book.author,
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .coverGradientScrim(book.genre, visualMode)
                         )
+                    }
+
+                    if (visualMode == VisualMode.IMMERSIVE) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .coverEdgeFade(book.genre, visualMode)
+                        )
+                        Column(
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                                .padding(20.dp)
+                        ) {
+                            Text(
+                                text = book.title,
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = androidx.compose.ui.graphics.Color.White
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = book.author,
+                                style = MaterialTheme.typography.titleLarge,
+                                color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.85f)
+                            )
+                        }
                     }
                 }
 
                 Column(
                     modifier = Modifier.padding(16.dp)
                 ) {
-                    Text(
-                        text = book.title,
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+                    if (visualMode != VisualMode.IMMERSIVE) {
+                        Text(
+                            text = book.title,
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold
+                        )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
 
-                    Text(
-                        text = book.author,
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                        Text(
+                            text = book.author,
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
 
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)

@@ -17,6 +17,7 @@ import com.alexandria.app.ui.components.BookGrid
 import com.alexandria.app.ui.components.BookList
 import com.alexandria.app.ui.components.ViewMode
 import com.alexandria.app.ui.components.ViewToggle
+import com.alexandria.app.ui.components.bookshelf.ShelfView
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -103,6 +104,12 @@ fun LibraryScreen(
                     ViewMode.CAROUSEL -> {
                         BookCarousel(
                             items = uiState.carouselItems,
+                            onBookClick = onNavigateToBookDetail
+                        )
+                    }
+                    ViewMode.SHELF -> {
+                        ShelfView(
+                            books = uiState.books,
                             onBookClick = onNavigateToBookDetail
                         )
                     }

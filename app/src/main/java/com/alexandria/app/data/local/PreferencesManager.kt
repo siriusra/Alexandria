@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.alexandria.app.data.model.CoverSource
 import com.alexandria.app.data.model.CoverSourceConfig
+import com.alexandria.app.domain.model.VisualMode
 import com.google.gson.Gson
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -55,6 +56,8 @@ class PreferencesManager(private val context: Context) {
         val SYNOPSIS_SOURCES_CONFIG = stringPreferencesKey("synopsis_sources_config")
         val COVER_SOURCES_CONFIG = stringPreferencesKey("cover_sources_config")
         val COVER_CACHE_ENABLED = booleanPreferencesKey("cover_cache_enabled")
+        val VISUAL_MODE = stringPreferencesKey("visual_mode")
+        val FIRST_LAUNCH_COMPLETED = booleanPreferencesKey("first_launch_completed")
 
         fun getDefaultCoverConfig(): CoverSourceConfig = CoverSourceConfig()
     }
@@ -97,6 +100,19 @@ class PreferencesManager(private val context: Context) {
         prefs[COVER_CACHE_ENABLED] ?: true
     }
 
+    val visualMode: Flow<VisualMode> = context.dataStore.data.map { prefs ->
+        val name = prefs[VISUAL_MODE]
+        try {
+            name?.let { VisualMode.valueOf(it) } ?: VisualMode.CLASSIC
+        } catch (e: Exception) {
+            VisualMode.CLASSIC
+        }
+    }
+
+    val firstLaunchCompleted: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[FIRST_LAUNCH_COMPLETED] ?: false
+    }
+
     suspend fun setDarkTheme(enabled: Boolean) {
         context.dataStore.edit { prefs ->
             prefs[IS_DARK_THEME] = enabled
@@ -124,6 +140,18 @@ class PreferencesManager(private val context: Context) {
     suspend fun setCoverCacheEnabled(enabled: Boolean) {
         context.dataStore.edit { prefs ->
             prefs[COVER_CACHE_ENABLED] = enabled
+        }
+    }
+
+    suspend fun setVisualMode(mode: VisualMode) {
+        context.dataStore.edit { prefs ->
+            prefs[VISUAL_MODE] = mode.name
+        }
+    }
+
+    suspend fun setFirstLaunchCompleted() {
+        context.dataStore.edit { prefs ->
+            prefs[FIRST_LAUNCH_COMPLETED] = true
         }
     }
 }

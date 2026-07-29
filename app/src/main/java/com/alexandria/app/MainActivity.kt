@@ -13,15 +13,20 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alexandria.app.data.local.PreferencesManager
+import com.alexandria.app.domain.model.VisualMode
 import com.alexandria.app.ui.navigation.MainNavGraph
 import com.alexandria.app.ui.theme.AlexandriaTheme
+import com.alexandria.app.ui.theme.LocalVisualMode
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -39,21 +44,102 @@ class MainActivity : ComponentActivity() {
         setContent {
             val isDarkTheme by preferencesManager.isDarkTheme.collectAsState(initial = false)
             val accentIndex by preferencesManager.accentColorIndex.collectAsState(initial = 0)
+            val visualMode by preferencesManager.visualMode.collectAsState(initial = VisualMode.CLASSIC)
+            val firstLaunchCompleted by preferencesManager.firstLaunchCompleted.collectAsState(initial = false)
 
-            AlexandriaTheme(
-                darkTheme = isDarkTheme,
-                accentIndex = accentIndex
+            var showFirstLaunchDialog by remember(firstLaunchCompleted) {
+                mutableStateOf(!firstLaunchCompleted)
+            }
+            val scope = rememberCoroutineScope()
+
+            CompositionLocalProvider(
+                LocalVisualMode provides visualMode
             ) {
-                if (crashLog != null) {
-                    CrashDialog(
-                        crashLog = crashLog,
-                        onDismiss = { /* dialog auto-dismisses */ }
-                    )
+                AlexandriaTheme(
+                    darkTheme = isDarkTheme,
+                    accentIndex = accentIndex
+                ) {
+                    if (crashLog != null) {
+                        CrashDialog(
+                            crashLog = crashLog,
+                            onDismiss = { /* dialog auto-dismisses */ }
+                        )
+                    }
+
+                    MainNavGraph()
+
+                    if (showFirstLaunchDialog) {
+                        FirstLaunchDialog(
+                            onSelectMode = { mode ->
+                                scope.launch {
+                                    preferencesManager.setVisualMode(mode)
+                                    preferencesManager.setFirstLaunchCompleted()
+                                    showFirstLaunchDialog = false
+                                }
+                            }
+                        )
+                    }
                 }
-                MainNavGraph()
             }
         }
     }
+}
+
+@Composable
+private fun FirstLaunchDialog(
+    onSelectMode: (VisualMode) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = { /* user must choose */ },
+        title = {
+            Text(
+                text = "Bienvenido a Alexandria",
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text("Elige el estilo visual que prefieras:")
+                VisualMode.entries.forEach { mode ->
+                    Surface(
+                        onClick = { onSelectMode(mode) },
+                        shape = MaterialTheme.shapes.medium,
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = mode.displayName,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = mode.description,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Puedes cambiar esto más tarde en Ajustes.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        confirmButton = {},
+        dismissButton = {}
+    )
 }
 
 @Composable

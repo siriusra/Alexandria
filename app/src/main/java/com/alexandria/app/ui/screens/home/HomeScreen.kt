@@ -15,11 +15,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.alexandria.app.domain.model.VisualMode
 import com.alexandria.app.ui.components.BookCard
+import com.alexandria.app.ui.components.ReadingInsightsCard
+import com.alexandria.app.ui.components.ReadingNook
+import com.alexandria.app.ui.components.ReadingTimeline
+import com.alexandria.app.ui.components.bookshelf.BookshelfEmptyState
+import com.alexandria.app.ui.theme.LocalVisualMode
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,6 +34,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val visualMode = LocalVisualMode.current
 
     Scaffold(
         topBar = {
@@ -48,7 +54,7 @@ fun HomeScreen(
                 Icon(Icons.Default.Add, contentDescription = "Añadir libro")
             }
         }
-        ) { paddingValues ->
+    ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -56,14 +62,22 @@ fun HomeScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            item(key = "stats") {
-                StaggeredSection(0) {
-                    StatsSection(
-                        totalBooks = uiState.totalBooks,
-                        readingCount = uiState.readingCount,
-                        finishedCount = uiState.finishedCount,
-                        pendingCount = uiState.pendingCount
-                    )
+            if (visualMode == VisualMode.IMMERSIVE && uiState.insights.totalBooks > 0) {
+                item(key = "insights") {
+                    StaggeredSection(0) {
+                        ReadingInsightsCard(insights = uiState.insights)
+                    }
+                }
+            } else {
+                item(key = "stats") {
+                    StaggeredSection(0) {
+                        StatsSection(
+                            totalBooks = uiState.totalBooks,
+                            readingCount = uiState.readingCount,
+                            finishedCount = uiState.finishedCount,
+                            pendingCount = uiState.pendingCount
+                        )
+                    }
                 }
             }
 
@@ -80,25 +94,40 @@ fun HomeScreen(
 
                 item(key = "reading_content") {
                     StaggeredSection(2) {
-                        LazyRow(
-                            contentPadding = PaddingValues(horizontal = 16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            items(uiState.currentlyReading, key = { it.id }) { book ->
-                                BookCard(
-                                    book = book,
-                                    onClick = { onNavigateToBookDetail(book.id) },
-                                    modifier = Modifier.width(180.dp)
-                                )
+                        if (visualMode == VisualMode.IMMERSIVE) {
+                            ReadingNook(
+                                books = uiState.currentlyReading,
+                                onBookClick = onNavigateToBookDetail
+                            )
+                        } else {
+                            LazyRow(
+                                contentPadding = PaddingValues(horizontal = 16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                items(uiState.currentlyReading, key = { it.id }) { book ->
+                                    BookCard(
+                                        book = book,
+                                        onClick = { onNavigateToBookDetail(book.id) },
+                                        modifier = Modifier.width(180.dp)
+                                    )
+                                }
                             }
                         }
                     }
                 }
             }
 
+            if (visualMode == VisualMode.IMMERSIVE && uiState.finishedBooks.isNotEmpty()) {
+                item(key = "timeline") {
+                    StaggeredSection(3) {
+                        ReadingTimeline(finishedBooks = uiState.finishedBooks)
+                    }
+                }
+            }
+
             if (uiState.recentlyAdded.isNotEmpty()) {
                 item(key = "recent_header") {
-                    StaggeredSection(3) {
+                    StaggeredSection(4) {
                         Text(
                             text = "Añadidos recientemente",
                             style = MaterialTheme.typography.titleLarge,
@@ -108,7 +137,7 @@ fun HomeScreen(
                 }
 
                 item(key = "recent_content") {
-                    StaggeredSection(4) {
+                    StaggeredSection(5) {
                         LazyRow(
                             contentPadding = PaddingValues(horizontal = 16.dp),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -127,8 +156,16 @@ fun HomeScreen(
 
             if (uiState.totalBooks == 0) {
                 item(key = "empty") {
-                    StaggeredSection(5) {
-                        EmptyState(onNavigateToAddBook)
+                    StaggeredSection(6) {
+                        if (visualMode == VisualMode.IMMERSIVE) {
+                            BookshelfEmptyState(
+                                message = "Tu biblioteca está vacía",
+                                actionLabel = "Añadir libro",
+                                onAction = onNavigateToAddBook
+                            )
+                        } else {
+                            EmptyState(onNavigateToAddBook)
+                        }
                     }
                 }
             }

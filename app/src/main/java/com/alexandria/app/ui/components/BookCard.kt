@@ -4,7 +4,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.alexandria.app.domain.model.Book
 import com.alexandria.app.domain.model.ReadingStatus
+import com.alexandria.app.ui.theme.LocalAlexandriaShapes
 
 @Composable
 fun BookCard(
@@ -33,6 +33,8 @@ fun BookCard(
         animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
         label = "pressScale"
     )
+
+    val shapes = LocalAlexandriaShapes.current
 
     Card(
         modifier = modifier
@@ -51,7 +53,7 @@ fun BookCard(
                     onTap = { onClick() }
                 )
             },
-        shape = RoundedCornerShape(12.dp),
+        shape = shapes.cardShape,
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
@@ -62,7 +64,7 @@ fun BookCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(0.68f)
-                    .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                    .clip(shapes.cardShapeSmall)
             ) {
                 if (book.coverUrl != null || book.coverLocalPath != null) {
                     AsyncImage(
