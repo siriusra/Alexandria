@@ -884,9 +884,17 @@ class PortadaResolver {
         try {
             if (title.isBlank()) return@withContext emptyList()
 
+            val mainKey = findBookPageKey(title, author)
+            if (mainKey != null) {
+                val wikidata = fetchWikidataCharacters(mainKey)
+                if (wikidata.isNotEmpty()) {
+                    Log.d(TAG, "Characters (Wikidata) for '$title': ${wikidata.take(12)}")
+                    return@withContext wikidata.take(12)
+                }
+            }
+
             val candidates = mutableListOf<String>()
 
-            val mainKey = findBookPageKey(title, author)
             if (mainKey != null) {
                 candidates.addAll(parsePersonajesSection(mainKey, allContent = false))
             }
@@ -903,10 +911,87 @@ class PortadaResolver {
                 .filterNot { isStructuralJunk(it) }
                 .distinct()
 
-            Log.d(TAG, "Characters found for '$title': ${cleaned.take(12)}")
+            Log.d(TAG, "Characters (Wikipedia) for '$title': ${cleaned.take(12)}")
             cleaned.take(12)
         } catch (e: Exception) {
             Log.e(TAG, "Error fetching characters for '$title'", e)
+            emptyList()
+        }
+    }
+
+    private suspend fun fetchWikidataItemId(pageKey: String): String? {
+        return try {
+            val encodedKey = java.net.URLEncoder.encode(pageKey, "UTF-8").replace("+", "%20")
+            val url = "https://es.wikipedia.org/api/rest_v1/page/summary/$encodedKey"
+            val request = Request.Builder()
+                .url(url)
+                .header("User-Agent", "Alexandria/1.0 (Android Book Tracker)")
+                .build()
+            val response = client.newCall(request).execute()
+            if (!response.isSuccessful) return null
+            val json = JSONObject(response.body?.string() ?: return null)
+            val qid = json.optString("wikibase_item", null)
+            qid?.takeIf { it.startsWith("Q") && it.length > 1 }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching Wikidata item id for $pageKey", e)
+            null
+        }
+    }
+
+    private suspend fun fetchWikidataCharacters(pageKey: String): List<String> {
+        val qid = fetchWikidataItemId(pageKey) ?: return emptyList()
+        return try {
+            val claimsUrl = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids=$qid&props=claims&format=json"
+            val claimsReq = Request.Builder()
+                .url(claimsUrl)
+                .header("User-Agent", "Alexandria/1.0 (Android Book Tracker)")
+                .build()
+            val claimsRes = client.newCall(claimsReq).execute()
+            if (!claimsRes.isSuccessful) return emptyList()
+            val claimsJson = JSONObject(claimsRes.body?.string() ?: return emptyList())
+            val entity = claimsJson.optJSONObject("entities")?.optJSONObject(qid) ?: return emptyList()
+            val p674 = entity.optJSONObject("claims")?.optJSONArray("P674") ?: return emptyList()
+
+            val charIds = LinkedHashSet<String>()
+            for (i in 0 until p674.length()) {
+                val claim = p674.optJSONObject(i) ?: continue
+                val value = claim
+                    .optJSONObject("mainsnak")
+                    ?.optJSONObject("datavalue")
+                    ?.optJSONObject("value")
+                val id = value?.optString("id", null)
+                if (id != null && id.startsWith("Q")) charIds.add(id)
+            }
+            if (charIds.isEmpty()) return emptyList()
+
+            val labelsUrl = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${charIds.joinToString("|")}&props=labels&languages=es%7Cen&format=json"
+            val labelsReq = Request.Builder()
+                .url(labelsUrl)
+                .header("User-Agent", "Alexandria/1.0 (Android Book Tracker)")
+                .build()
+            val labelsRes = client.newCall(labelsReq).execute()
+            if (!labelsRes.isSuccessful) return emptyList()
+            val labelsJson = JSONObject(labelsRes.body?.string() ?: return emptyList())
+            val entities = labelsJson.optJSONObject("entities") ?: return emptyList()
+
+            val names = LinkedHashSet<String>()
+            for (id in charIds) {
+                val labels = entities.optJSONObject(id)?.optJSONObject("labels") ?: continue
+                val label = labels.optJSONObject("es") ?: labels.optJSONObject("en") ?: continue
+                val raw = label.optString("value", null) ?: continue
+                val name = cleanCharacterName(raw)
+                if (name.length !in 2..60) continue
+                if (isStructuralJunk(name)) continue
+                if (raw.contains("personajes de", ignoreCase = true) ||
+                    raw.contains("list of", ignoreCase = true) ||
+                    raw.contains("characters of", ignoreCase = true) ||
+                    raw.contains("anexo", ignoreCase = true)
+                ) continue
+                names.add(name)
+            }
+            names.toList()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching Wikidata characters for $qid", e)
             emptyList()
         }
     }
@@ -966,9 +1051,9 @@ class PortadaResolver {
 
             if (allContent) {
                 for (li in content.select("ul > li")) {
-                    addNameFromLi(li, names)
+                    addNameFromLi(li, names, maxLen = 40)
                 }
-                for (td in content.select("table.wikitable td")) {
+                for (td in content.select("table.wikitable tr > td:first-child")) {
                     addNameFromTd(td, names)
                 }
             } else {
@@ -1006,10 +1091,15 @@ class PortadaResolver {
         }
     }
 
-    private fun addNameFromLi(li: org.jsoup.nodes.Element, names: LinkedHashSet<String>) {
+    private fun addNameFromLi(
+        li: org.jsoup.nodes.Element,
+        names: LinkedHashSet<String>,
+        maxLen: Int = 120
+    ) {
         val bold = li.selectFirst("b")
         val text = if (bold != null) bold.text() else li.text()
-        if (text.isNotBlank()) names.add(text.trim())
+        val clean = text.trim()
+        if (clean.isNotBlank() && clean.length <= maxLen) names.add(clean)
     }
 
     private fun addNameFromTd(td: org.jsoup.nodes.Element, names: LinkedHashSet<String>) {

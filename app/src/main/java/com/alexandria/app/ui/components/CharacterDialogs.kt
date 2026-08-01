@@ -110,6 +110,11 @@ fun CharacterSuggestionsDialog(
 ) {
     var selectedNames by remember(candidates) { mutableStateOf(candidates.toSet()) }
 
+    fun toggle(name: String) {
+        val current = selectedNames
+        selectedNames = if (name in current) current - name else current + name
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -141,25 +146,13 @@ fun CharacterSuggestionsDialog(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable {
-                                    selectedNames = if (checked) {
-                                        selectedNames - name
-                                    } else {
-                                        selectedNames + name
-                                    }
-                                }
+                                .clickable { toggle(name) }
                                 .padding(vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Checkbox(
                                 checked = checked,
-                                onCheckedChange = {
-                                    selectedNames = if (checked) {
-                                        selectedNames - name
-                                    } else {
-                                        selectedNames + name
-                                    }
-                                }
+                                onCheckedChange = null
                             )
                             Text(text = CharacterEmojis.defaultForName(name), fontSize = 22.sp)
                             Spacer(modifier = Modifier.width(8.dp))
