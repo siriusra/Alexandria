@@ -6,15 +6,22 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.alexandria.app.data.local.BookCharacterDao
 import com.alexandria.app.data.local.CoverCacheDao
+import com.alexandria.app.data.local.entity.BookCharacterEntity
 import com.alexandria.app.data.local.entity.BookEntity
 import com.alexandria.app.data.local.entity.CoverCacheEntity
 
-@Database(entities = [BookEntity::class, CoverCacheEntity::class], version = 3, exportSchema = false)
+@Database(
+    entities = [BookEntity::class, CoverCacheEntity::class, BookCharacterEntity::class],
+    version = 4,
+    exportSchema = false
+)
 abstract class AlexandriaDatabase : RoomDatabase() {
 
     abstract fun bookDao(): BookDao
     abstract fun coverCacheDao(): CoverCacheDao
+    abstract fun bookCharacterDao(): BookCharacterDao
 
     companion object {
         @Volatile
@@ -35,13 +42,29 @@ abstract class AlexandriaDatabase : RoomDatabase() {
             """.trimIndent())
         }
 
+        val MIGRATION_3_4 = Migration(3, 4) { db ->
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS book_characters (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    bookId INTEGER NOT NULL,
+                    name TEXT NOT NULL,
+                    iconType TEXT NOT NULL,
+                    iconKey TEXT NOT NULL,
+                    isFavorite INTEGER NOT NULL,
+                    sortOrder INTEGER NOT NULL,
+                    FOREIGN KEY(bookId) REFERENCES books(id) ON DELETE CASCADE
+                )
+            """.trimIndent())
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_book_characters_bookId ON book_characters(bookId)")
+        }
+
         fun getDatabase(context: Context): AlexandriaDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AlexandriaDatabase::class.java,
                     "alexandria_database"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build()
                 INSTANCE = instance
                 instance
             }

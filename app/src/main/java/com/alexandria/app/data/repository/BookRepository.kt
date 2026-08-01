@@ -1,11 +1,14 @@
 package com.alexandria.app.data.repository
 
 import android.util.Log
+import com.alexandria.app.data.local.BookCharacterDao
 import com.alexandria.app.data.local.BookDao
+import com.alexandria.app.data.local.entity.BookCharacterEntity
 import com.alexandria.app.data.local.entity.BookEntity
 import com.alexandria.app.data.remote.GoogleBookItem
 import com.alexandria.app.data.remote.PortadaResolver
 import com.alexandria.app.domain.model.Book
+import com.alexandria.app.domain.model.BookCharacter
 import com.alexandria.app.domain.model.ReadingStatus
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
@@ -16,6 +19,7 @@ import javax.inject.Singleton
 @Singleton
 class BookRepository @Inject constructor(
     private val bookDao: BookDao,
+    private val bookCharacterDao: BookCharacterDao,
     private val portadaResolver: PortadaResolver
 ) {
     fun getAllBooks(): Flow<List<Book>> {
@@ -85,6 +89,41 @@ class BookRepository @Inject constructor(
 
     suspend fun deleteBookById(bookId: Long) {
         bookDao.deleteBookById(bookId)
+        bookCharacterDao.deleteForBook(bookId)
+    }
+
+    // ===== CHARACTERS =====
+
+    fun getCharactersForBook(bookId: Long): Flow<List<BookCharacter>> {
+        return bookCharacterDao.getForBook(bookId).map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
+    suspend fun addCharacter(character: BookCharacter): Long {
+        return bookCharacterDao.insert(character.toEntity())
+    }
+
+    suspend fun addCharacters(characters: List<BookCharacter>) {
+        if (characters.isNotEmpty()) {
+            bookCharacterDao.insertAll(characters.map { it.toEntity() })
+        }
+    }
+
+    suspend fun updateCharacter(character: BookCharacter) {
+        bookCharacterDao.update(character.toEntity())
+    }
+
+    suspend fun updateCharacterFavorite(id: Long, isFavorite: Boolean) {
+        bookCharacterDao.updateFavorite(id, isFavorite)
+    }
+
+    suspend fun deleteCharacter(character: BookCharacter) {
+        bookCharacterDao.delete(character.toEntity())
+    }
+
+    suspend fun deleteCharacterById(id: Long) {
+        bookCharacterDao.deleteById(id)
     }
 
     suspend fun searchCovers(query: String): List<GoogleBookItem> {
@@ -155,6 +194,30 @@ class BookRepository @Inject constructor(
             isbn = isbn,
             dateAdded = dateAdded,
             dateFinished = dateFinished
+        )
+    }
+
+    private fun BookCharacterEntity.toDomain(): BookCharacter {
+        return BookCharacter(
+            id = id,
+            bookId = bookId,
+            name = name,
+            iconType = iconType,
+            iconKey = iconKey,
+            isFavorite = isFavorite,
+            sortOrder = sortOrder
+        )
+    }
+
+    private fun BookCharacter.toEntity(): BookCharacterEntity {
+        return BookCharacterEntity(
+            id = id,
+            bookId = bookId,
+            name = name,
+            iconType = iconType,
+            iconKey = iconKey,
+            isFavorite = isFavorite,
+            sortOrder = sortOrder
         )
     }
 

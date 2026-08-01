@@ -439,7 +439,7 @@ class PortadaResolver {
         try {
             val authorPart = author?.takeIf { it.isNotBlank() }?.take(30) ?: ""
             val query = java.net.URLEncoder.encode("$title $authorPart", "UTF-8")
-            val url = "https://openlibrary.org/search.json?q=$query&fields=cover_i&limit=1"
+            val url = "https://openlibrary.org/search.json?q=$query&fields=cover_i&limit=1&language=spa"
             val request = Request.Builder()
                 .url(url)
                 .header("User-Agent", "Alexandria/1.0 (Android Book Tracker)")
@@ -527,6 +527,40 @@ class PortadaResolver {
             Log.e(TAG, "Error searching description for '$title'", e)
             null
         }
+    }
+
+    // ===== SPANISH LANGUAGE DETECTION =====
+
+    fun isSpanishText(text: String): Boolean {
+        val lower = text.lowercase()
+        val hasDiacritics = Regex("[áéíóúñüÁÉÍÓÚÑÜ]").containsMatchIn(text)
+        if (hasDiacritics && lower.length > 40) return true
+
+        val spanishWords = listOf(
+            "el", "la", "los", "las", "de", "del", "que", "con", "por", "para",
+            "una", "un", "es", "su", "se", "como", "cuando", "entre", "más",
+            "pero", "sin", "sobre", "también", "después", "tras", "mientras",
+            "ella", "nos", "les", "al", "no", "ya", "todo", "esta", "este",
+            "historia", "novela", "mundo", "vida", "hombre", "mujer", "padre",
+            "madre", "hermano", "amor", "tiempo", "años", "días", "noche", "día"
+        )
+        val englishWords = listOf(
+            "the", "and", "of", "to", "in", "is", "are", "was", "were", "with",
+            "from", "for", "this", "that", "it", "his", "her", "they", "you",
+            "we", "story", "world", "life", "when", "about", "after", "into",
+            "their", "there", "them", "had", "has", "have", "been", "will",
+            "would", "could", "should", "father", "mother", "brother", "love",
+            "time", "years", "days", "night", "man", "woman"
+        )
+        var spanishScore = 0
+        var englishScore = 0
+        for (word in spanishWords) {
+            spanishScore += Regex("\\b$word\\b").findAll(lower).count()
+        }
+        for (word in englishWords) {
+            englishScore += Regex("\\b$word\\b").findAll(lower).count()
+        }
+        return spanishScore >= englishScore && spanishScore > 0
     }
 
     private fun String.normalizeForMatch(): String =
@@ -842,6 +876,172 @@ class PortadaResolver {
             Log.e(TAG, "Error fetching Google Books data for '$title'", e)
             null
         }
+    }
+
+    // ===== CHARACTER EXTRACTION =====
+
+    suspend fun fetchCharacters(title: String, author: String): List<String> = withContext(Dispatchers.IO) {
+        try {
+            if (title.isBlank()) return@withContext emptyList()
+
+            val candidates = mutableListOf<String>()
+
+            val mainKey = findBookPageKey(title, author)
+            if (mainKey != null) {
+                candidates.addAll(parsePersonajesSection(mainKey, allContent = false))
+            }
+
+            val anexoKey = findAnexoPageKey(title)
+            if (anexoKey != null) {
+                candidates.addAll(parsePersonajesSection(anexoKey, allContent = true))
+            }
+
+            val cleaned = candidates
+                .map { cleanCharacterName(it) }
+                .filter { it.length in 2..60 }
+                .filter { it.split(" ").size <= 6 }
+                .filterNot { isStructuralJunk(it) }
+                .distinct()
+
+            Log.d(TAG, "Characters found for '$title': ${cleaned.take(12)}")
+            cleaned.take(12)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching characters for '$title'", e)
+            emptyList()
+        }
+    }
+
+    private suspend fun findBookPageKey(title: String, author: String): String? {
+        val queries = buildList {
+            add("\"$title\" $author")
+            add("\"$title\" libro")
+            add("\"$title\"")
+        }
+        for (query in queries) {
+            val pages = searchWikipediaPage(query) ?: continue
+            if (pages.length() == 0) continue
+            val bestKey = pages.findBestPage(title)
+            if (bestKey != null) return bestKey
+        }
+        return null
+    }
+
+    private suspend fun findAnexoPageKey(title: String): String? {
+        val queries = listOf(
+            "Anexo:Personajes de $title",
+            "Anexo:Personajes de \"$title\"",
+            "$title personajes anexo"
+        )
+        for (query in queries) {
+            val pages = searchWikipediaPage(query) ?: continue
+            if (pages.length() == 0) continue
+            for (i in 0 until pages.length()) {
+                val page = pages.getJSONObject(i)
+                val pageTitle = page.optString("title", "")
+                val key = page.optString("key", null)
+                if (pageTitle.contains("Personajes", ignoreCase = true) && key != null) {
+                    return key
+                }
+            }
+        }
+        return null
+    }
+
+    private fun parsePersonajesSection(pageKey: String, allContent: Boolean): List<String> {
+        try {
+            val encodedKey = java.net.URLEncoder.encode(pageKey, "UTF-8").replace("+", "%20")
+            val url = "https://es.wikipedia.org/wiki/$encodedKey"
+            val request = Request.Builder()
+                .url(url)
+                .header("User-Agent", "Alexandria/1.0 (Android Book Tracker)")
+                .build()
+            val response = webClient.newCall(request).execute()
+            if (!response.isSuccessful) return emptyList()
+            val html = response.body?.string() ?: return emptyList()
+            val doc = Jsoup.parse(html)
+            val names = LinkedHashSet<String>()
+
+            val content = doc.selectFirst("div.mw-parser-output")
+            if (content == null) return emptyList()
+
+            if (allContent) {
+                for (li in content.select("ul > li")) {
+                    addNameFromLi(li, names)
+                }
+                for (td in content.select("table.wikitable td")) {
+                    addNameFromTd(td, names)
+                }
+            } else {
+                val heading = content.select("h2, h3, h4").firstOrNull {
+                    it.text().contains("Personajes", ignoreCase = true)
+                }
+                if (heading != null) {
+                    val level = heading.tagName().substring(1).toIntOrNull() ?: 2
+                    var el = heading.nextElementSibling()
+                    while (el != null) {
+                        val tag = el.tagName()
+                        if (tag.startsWith("h")) {
+                            val lvl = tag.substring(1).toIntOrNull() ?: level
+                            if (lvl <= level) break
+                        }
+                        if (tag == "ul") {
+                            for (li in el.select("> li")) {
+                                addNameFromLi(li, names)
+                            }
+                        }
+                        if (tag == "table" && el.classNames().contains("wikitable")) {
+                            for (td in el.select("td")) {
+                                addNameFromTd(td, names)
+                            }
+                        }
+                        el = el.nextElementSibling()
+                    }
+                }
+            }
+
+            return names.toList()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error parsing characters page $pageKey", e)
+            return emptyList()
+        }
+    }
+
+    private fun addNameFromLi(li: org.jsoup.nodes.Element, names: LinkedHashSet<String>) {
+        val bold = li.selectFirst("b")
+        val text = if (bold != null) bold.text() else li.text()
+        if (text.isNotBlank()) names.add(text.trim())
+    }
+
+    private fun addNameFromTd(td: org.jsoup.nodes.Element, names: LinkedHashSet<String>) {
+        val text = td.text().trim()
+        if (text.isNotBlank() && text.length in 2..60 && !text.contains(":")) {
+            names.add(text)
+        }
+    }
+
+    private fun cleanCharacterName(raw: String): String {
+        var name = raw.trim()
+        for (sep in listOf(" — ", " – ", " - ", ": ", ":", ";", ",", "(", "[", "«", "\"")) {
+            val idx = name.indexOf(sep)
+            if (idx > 0) {
+                name = name.substring(0, idx)
+                break
+            }
+        }
+        return name.trim().trimEnd('.', ';')
+    }
+
+    private fun isStructuralJunk(name: String): Boolean {
+        val lower = name.lowercase()
+        val junkWords = listOf(
+            "véase", "referencias", "enlaces externos", "bibliografía", "notas",
+            "anexo", "personajes principales", "personajes secundarios", "categoría",
+            "galardón", "premios", "recepción", "análisis", "adaptación", "resumen",
+            "sinopsis", "ambientación", "inspiración", "estilo", "argumento",
+            "trama", "ediciones", "traducciones", "lista de", "plantilla",
+            "categorías", "enlaces", "wikipedia", "fuentes", "véase también"
+        )
+        return junkWords.any { lower.startsWith(it) || lower.contains(" $it") }
     }
 
     companion object {

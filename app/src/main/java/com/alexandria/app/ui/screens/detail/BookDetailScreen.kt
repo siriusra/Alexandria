@@ -6,6 +6,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -27,9 +28,14 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
+import com.alexandria.app.domain.model.BookCharacter
 import com.alexandria.app.domain.model.ReadingStatus
 import com.alexandria.app.domain.model.VisualMode
+import com.alexandria.app.ui.components.CharacterAvatar
+import com.alexandria.app.ui.components.CharacterEditDialog
+import com.alexandria.app.ui.components.CharacterSuggestionsDialog
+import com.alexandria.app.ui.components.ICON_TYPE_EMOJI
 import com.alexandria.app.ui.components.PlaceholderPortada
 import com.alexandria.app.ui.components.ReadingStatusBadge
 import com.alexandria.app.ui.components.coverEdgeFade
@@ -46,6 +52,8 @@ fun BookDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showCharacterAdd by remember { mutableStateOf(false) }
+    var editingCharacter by remember { mutableStateOf<BookCharacter?>(null) }
 
     uiState.book?.let { book ->
         Scaffold(
@@ -94,13 +102,22 @@ fun BookDetailScreen(
                         }
                 ) {
                     if (coverUrl != null) {
-                        AsyncImage(
+                        SubcomposeAsyncImage(
                             model = coverUrl,
                             contentDescription = book.title,
                             modifier = Modifier
                                 .fillMaxSize()
                                 .coverGradientScrim(book.genre, visualMode),
-                            contentScale = ContentScale.Crop
+                            contentScale = ContentScale.Crop,
+                            error = {
+                                PlaceholderPortada(
+                                    titulo = book.title,
+                                    autor = book.author,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .coverGradientScrim(book.genre, visualMode)
+                                )
+                            }
                         )
                     } else {
                         PlaceholderPortada(
@@ -550,6 +567,75 @@ fun BookDetailScreen(
                             style = MaterialTheme.typography.bodyLarge
                         )
                     }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = "Personajes",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(onClick = { showCharacterAdd = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Añadir")
+                        }
+                        if (uiState.isCharactersLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            OutlinedButton(onClick = { viewModel.searchCharacters() }) {
+                                Icon(
+                                    imageVector = Icons.Default.Search,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Buscar")
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    val characters = uiState.characters.sortedWith(
+                        compareByDescending<BookCharacter> { it.isFavorite }.thenBy { it.sortOrder }
+                    )
+
+                    if (characters.isEmpty()) {
+                        Text(
+                            text = "Sin personajes todavía. Añade uno a mano o usa «Buscar» para encontrarlos en Wikipedia.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        characters.forEach { character ->
+                            CharacterRow(
+                                character = character,
+                                onEdit = { editingCharacter = character },
+                                onToggleFavorite = {
+                                    viewModel.toggleCharacterFavorite(
+                                        character.id,
+                                        !character.isFavorite
+                                    )
+                                },
+                                onDelete = { viewModel.deleteCharacter(character.id) }
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -577,12 +663,110 @@ fun BookDetailScreen(
                 }
             )
         }
+
+        if (showCharacterAdd) {
+            CharacterEditDialog(
+                title = "Añadir personaje",
+                initialName = "",
+                initialIconType = ICON_TYPE_EMOJI,
+                initialIconKey = "⭐",
+                onDismiss = { showCharacterAdd = false },
+                onSave = { name, iconType, iconKey ->
+                    viewModel.addCharacter(name, iconType, iconKey)
+                    showCharacterAdd = false
+                }
+            )
+        }
+
+        editingCharacter?.let { character ->
+            CharacterEditDialog(
+                title = "Editar personaje",
+                initialName = character.name,
+                initialIconType = character.iconType,
+                initialIconKey = character.iconKey,
+                onDismiss = { editingCharacter = null },
+                onSave = { name, iconType, iconKey ->
+                    viewModel.updateCharacter(character.id, name, iconType, iconKey)
+                    editingCharacter = null
+                }
+            )
+        }
+
+        uiState.characterSuggestions?.let { candidates ->
+            CharacterSuggestionsDialog(
+                candidates = candidates,
+                onDismiss = { viewModel.dismissCharacterSuggestions() },
+                onAdd = { pairs -> viewModel.addCharacters(pairs) }
+            )
+        }
     } ?: run {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
             CircularProgressIndicator()
+        }
+    }
+}
+
+@Composable
+private fun CharacterRow(
+    character: BookCharacter,
+    onEdit: () -> Unit,
+    onToggleFavorite: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .clickable(onClick = onEdit)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            CharacterAvatar(
+                iconType = character.iconType,
+                iconKey = character.iconKey,
+                size = 36.dp,
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = character.name,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = if (character.isFavorite) FontWeight.Bold else FontWeight.Normal,
+                modifier = Modifier.weight(1f)
+            )
+            IconButton(onClick = onToggleFavorite) {
+                Icon(
+                    imageVector = if (character.isFavorite) {
+                        Icons.Default.Star
+                    } else {
+                        Icons.Default.StarBorder
+                    },
+                    contentDescription = if (character.isFavorite) {
+                        "Quitar de favoritos"
+                    } else {
+                        "Marcar como favorito"
+                    },
+                    tint = if (character.isFavorite) {
+                        MaterialTheme.colorScheme.tertiary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+                )
+            }
+            IconButton(onClick = onDelete) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Eliminar personaje",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }

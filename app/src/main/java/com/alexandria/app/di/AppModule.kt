@@ -2,6 +2,7 @@ package com.alexandria.app.di
 
 import android.content.Context
 import com.alexandria.app.data.local.AlexandriaDatabase
+import com.alexandria.app.data.local.BookCharacterDao
 import com.alexandria.app.data.local.BookDao
 import com.alexandria.app.data.local.CoverCacheDao
 import com.alexandria.app.data.local.PreferencesManager
@@ -33,6 +34,12 @@ object DatabaseModule {
     @Singleton
     fun provideCoverCacheDao(database: AlexandriaDatabase): CoverCacheDao {
         return database.coverCacheDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideBookCharacterDao(database: AlexandriaDatabase): BookCharacterDao {
+        return database.bookCharacterDao()
     }
 
     @Provides

@@ -8,8 +8,10 @@ import com.alexandria.app.data.local.PreferencesManager
 import com.alexandria.app.data.model.CoverSourceConfig
 import com.alexandria.app.data.remote.PortadaResolver
 import com.alexandria.app.domain.model.Book
+import com.alexandria.app.domain.model.BookCharacter
 import com.alexandria.app.domain.model.ReadingStatus
 import com.alexandria.app.data.repository.BookRepository
+import com.alexandria.app.ui.components.ICON_TYPE_EMOJI
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -23,7 +25,10 @@ data class DetailUiState(
     val externalRating: Double? = null,
     val externalRatingsCount: Int? = null,
     val ratingSource: String? = null,
-    val coverUrl: String? = null
+    val coverUrl: String? = null,
+    val characters: List<BookCharacter> = emptyList(),
+    val isCharactersLoading: Boolean = false,
+    val characterSuggestions: List<String>? = null
 )
 
 @HiltViewModel
@@ -42,6 +47,11 @@ class BookDetailViewModel @Inject constructor(
 
     init {
         loadBook()
+        viewModelScope.launch {
+            repository.getCharactersForBook(bookId).collect { characters ->
+                _uiState.value = _uiState.value.copy(characters = characters)
+            }
+        }
     }
 
     private var descriptionFetched = false
@@ -50,9 +60,10 @@ class BookDetailViewModel @Inject constructor(
     private fun loadBook() {
         viewModelScope.launch {
             repository.getBookById(bookId).collect { book ->
-                _uiState.value = DetailUiState(
+                _uiState.value = _uiState.value.copy(
                     book = book,
-                    isLoading = false
+                    isLoading = false,
+                    coverUrl = book?.coverUrl ?: book?.coverLocalPath
                 )
                 if (book != null && !descriptionFetched) {
                     descriptionFetched = true
@@ -67,6 +78,10 @@ class BookDetailViewModel @Inject constructor(
     }
 
     private suspend fun fetchCover(book: Book) {
+        if (!book.coverUrl.isNullOrBlank() || !book.coverLocalPath.isNullOrBlank()) {
+            _uiState.value = _uiState.value.copy(coverUrl = book.coverUrl ?: book.coverLocalPath)
+            return
+        }
         val config = preferencesManager.coverSourcesConfig.first()
         val coverUrl = portadaResolver.resolverCover(
             isbn = book.isbn,
@@ -75,7 +90,9 @@ class BookDetailViewModel @Inject constructor(
             coverCacheDao = coverCacheDao,
             config = config
         )
-        _uiState.value = _uiState.value.copy(coverUrl = coverUrl)
+        if (coverUrl != null) {
+            _uiState.value = _uiState.value.copy(coverUrl = coverUrl)
+        }
     }
 
     private suspend fun fetchDescription(book: Book) {
@@ -89,18 +106,29 @@ class BookDetailViewModel @Inject constructor(
         for (key in sources.enabledSources) {
             when (key) {
                 "isbn" -> if (!book.isbn.isNullOrBlank()) {
-                    desc = portadaResolver.fetchDescriptionFromIsbn(book.isbn)
+                    val candidate = portadaResolver.fetchDescriptionFromIsbn(book.isbn)
+                    if (desc == null && candidate != null && portadaResolver.isSpanishText(candidate)) {
+                        desc = candidate
+                    }
                 }
                 "todostuslibros" -> if (desc == null && !book.isbn.isNullOrBlank()) {
-                    desc = portadaResolver.fetchDescriptionFromTodoTusLibros(book.isbn)
+                    val candidate = portadaResolver.fetchDescriptionFromTodoTusLibros(book.isbn)
+                    if (candidate != null && portadaResolver.isSpanishText(candidate)) {
+                        desc = candidate
+                    }
                 }
                 "casa_del_libro" -> if (desc == null) {
-                    desc = portadaResolver.fetchDescriptionFromCasaDelLibro(book.title, book.author)
+                    val candidate = portadaResolver.fetchDescriptionFromCasaDelLibro(book.title, book.author)
+                    if (candidate != null && portadaResolver.isSpanishText(candidate)) {
+                        desc = candidate
+                    }
                 }
                 "openlibrary" -> {
                     val olData = portadaResolver.fetchDescriptionBySearch(book.title, book.author, lang = "spa")
                     if (olData != null) {
-                        if (desc == null && olData.description != null) desc = olData.description
+                        if (desc == null && olData.description != null && portadaResolver.isSpanishText(olData.description)) {
+                            desc = olData.description
+                        }
                         if (externalRating == null && olData.averageRating != null) {
                             externalRating = olData.averageRating
                             externalRatingsCount = olData.ratingsCount
@@ -109,12 +137,17 @@ class BookDetailViewModel @Inject constructor(
                     }
                 }
                 "wikipedia" -> if (desc == null) {
-                    desc = portadaResolver.fetchDescriptionFromWikipedia(book.title, book.author)
+                    val candidate = portadaResolver.fetchDescriptionFromWikipedia(book.title, book.author)
+                    if (candidate != null && portadaResolver.isSpanishText(candidate)) {
+                        desc = candidate
+                    }
                 }
                 "google_books" -> {
                     val googleData = portadaResolver.fetchFromGoogleBooks(book.title, book.author)
                     if (googleData != null) {
-                        if (desc == null && googleData.description != null) desc = googleData.description
+                        if (desc == null && googleData.description != null && portadaResolver.isSpanishText(googleData.description)) {
+                            desc = googleData.description
+                        }
                         if (externalRating == null && googleData.averageRating != null) {
                             externalRating = googleData.averageRating
                             externalRatingsCount = googleData.ratingsCount
@@ -169,6 +202,77 @@ class BookDetailViewModel @Inject constructor(
             _uiState.value.book?.let { book ->
                 repository.deleteBook(book)
             }
+        }
+    }
+
+    fun addCharacter(name: String, iconType: String, iconKey: String) {
+        viewModelScope.launch {
+            repository.addCharacter(
+                BookCharacter(
+                    bookId = bookId,
+                    name = name,
+                    iconType = iconType,
+                    iconKey = iconKey,
+                    sortOrder = _uiState.value.characters.size
+                )
+            )
+        }
+    }
+
+    fun addCharacters(pairs: List<Pair<String, String>>) {
+        if (pairs.isEmpty()) return
+        viewModelScope.launch {
+            val startOrder = _uiState.value.characters.size
+            repository.addCharacters(
+                pairs.mapIndexed { index, (name, iconKey) ->
+                    BookCharacter(
+                        bookId = bookId,
+                        name = name,
+                        iconType = ICON_TYPE_EMOJI,
+                        iconKey = iconKey,
+                        sortOrder = startOrder + index
+                    )
+                }
+            )
+        }
+    }
+
+    fun updateCharacter(id: Long, name: String, iconType: String, iconKey: String) {
+        viewModelScope.launch {
+            _uiState.value.characters.find { it.id == id }?.let { character ->
+                repository.updateCharacter(
+                    character.copy(name = name, iconType = iconType, iconKey = iconKey)
+                )
+            }
+        }
+    }
+
+    fun toggleCharacterFavorite(id: Long, isFavorite: Boolean) {
+        viewModelScope.launch {
+            repository.updateCharacterFavorite(id, isFavorite)
+        }
+    }
+
+    fun deleteCharacter(id: Long) {
+        viewModelScope.launch {
+            repository.deleteCharacterById(id)
+        }
+    }
+
+    fun dismissCharacterSuggestions() {
+        _uiState.value = _uiState.value.copy(characterSuggestions = null)
+    }
+
+    fun searchCharacters() {
+        val book = _uiState.value.book ?: return
+        if (_uiState.value.isCharactersLoading) return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isCharactersLoading = true)
+            val found = portadaResolver.fetchCharacters(book.title, book.author)
+            _uiState.value = _uiState.value.copy(
+                isCharactersLoading = false,
+                characterSuggestions = found
+            )
         }
     }
 }
