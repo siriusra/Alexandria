@@ -62,23 +62,45 @@ class BookDetailViewModel @Inject constructor(
     private var coverFetched = false
 
     private fun loadBook() {
+        if (bookId == 0L) {
+            _uiState.value = _uiState.value.copy(isLoading = false)
+            return
+        }
         viewModelScope.launch {
+            var hasReceivedBook = false
+            var timeoutJob: Job? = null
             repository.getBookById(bookId).collect { book ->
                 val current = _uiState.value
                 val effective = book ?: current.book
+                val gotBookNow = effective != null
+                if (gotBookNow && !hasReceivedBook) {
+                    hasReceivedBook = true
+                    timeoutJob?.cancel()
+                    timeoutJob = null
+                }
                 _uiState.value = current.copy(
                     book = effective,
-                    isLoading = false,
+                    isLoading = !gotBookNow,
                     description = effective?.description ?: current.description,
                     coverUrl = effective?.coverUrl ?: effective?.coverLocalPath
                 )
-                if (effective != null && !descriptionFetched) {
-                    descriptionFetched = true
-                    fetchDescription(effective)
-                }
-                if (effective != null && !coverFetched) {
-                    coverFetched = true
-                    fetchCover(effective)
+                if (gotBookNow) {
+                    if (!descriptionFetched) {
+                        descriptionFetched = true
+                        fetchDescription(effective!!)
+                    }
+                    if (!coverFetched) {
+                        coverFetched = true
+                        fetchCover(effective!!)
+                    }
+                } else if (!hasReceivedBook && timeoutJob == null) {
+                    timeoutJob = viewModelScope.launch {
+                        delay(3000)
+                        val current2 = _uiState.value
+                        if (current2.book == null && current2.isLoading) {
+                            _uiState.value = current2.copy(isLoading = false)
+                        }
+                    }
                 }
             }
         }
