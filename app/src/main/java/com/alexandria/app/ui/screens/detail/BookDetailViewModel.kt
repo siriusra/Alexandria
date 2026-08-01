@@ -1,5 +1,6 @@
 package com.alexandria.app.ui.screens.detail
 
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -13,6 +14,7 @@ import com.alexandria.app.domain.model.ReadingStatus
 import com.alexandria.app.data.repository.BookRepository
 import com.alexandria.app.ui.components.ICON_TYPE_EMOJI
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -268,11 +270,21 @@ class BookDetailViewModel @Inject constructor(
         if (_uiState.value.isCharactersLoading) return
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isCharactersLoading = true)
-            val found = portadaResolver.fetchCharacters(book.title, book.author)
-            _uiState.value = _uiState.value.copy(
-                isCharactersLoading = false,
-                characterSuggestions = found
-            )
+            var found: List<String> = emptyList()
+            try {
+                found = portadaResolver.fetchCharacters(book.title, book.author)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "Error searching characters", e)
+            } finally {
+                _uiState.value = _uiState.value.copy(isCharactersLoading = false)
+            }
+            _uiState.value = _uiState.value.copy(characterSuggestions = found)
         }
+    }
+
+    private companion object {
+        const val TAG = "BookDetailViewModel"
     }
 }

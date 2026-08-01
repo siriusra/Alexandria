@@ -13,8 +13,10 @@ import com.alexandria.app.data.remote.VolumeInfo
 import com.alexandria.app.data.remote.ImageLinks
 import com.alexandria.app.data.remote.IndustryIdentifier
 import com.alexandria.app.data.remote.GoogleBooksData
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONArray
@@ -888,37 +890,41 @@ class PortadaResolver {
 
     suspend fun fetchCharacters(title: String, author: String): List<String> = withContext(Dispatchers.IO) {
         try {
-            if (title.isBlank()) return@withContext emptyList()
+            withTimeout(60_000) {
+                if (title.isBlank()) return@withTimeout emptyList()
 
-            val mainKey = findBookPageKey(title, author)
-            if (mainKey != null) {
-                val wikidata = fetchWikidataCharacters(mainKey)
-                if (wikidata.isNotEmpty()) {
-                    Log.d(TAG, "Characters (Wikidata) for '$title': ${wikidata.take(12)}")
-                    return@withContext wikidata.take(12)
+                val mainKey = findBookPageKey(title, author)
+                if (mainKey != null) {
+                    val wikidata = fetchWikidataCharacters(mainKey)
+                    if (wikidata.isNotEmpty()) {
+                        Log.d(TAG, "Characters (Wikidata) for '$title': ${wikidata.take(12)}")
+                        return@withTimeout wikidata.take(12)
+                    }
                 }
+
+                val candidates = mutableListOf<String>()
+
+                if (mainKey != null) {
+                    candidates.addAll(parsePersonajesSection(mainKey, allContent = false))
+                }
+
+                val anexoKey = findAnexoPageKey(title)
+                if (anexoKey != null) {
+                    candidates.addAll(parsePersonajesSection(anexoKey, allContent = true))
+                }
+
+                val cleaned = candidates
+                    .map { cleanCharacterName(it) }
+                    .filter { it.length in 2..60 }
+                    .filter { it.split(" ").size <= 6 }
+                    .filterNot { isStructuralJunk(it) }
+                    .distinct()
+
+                Log.d(TAG, "Characters (Wikipedia) for '$title': ${cleaned.take(12)}")
+                cleaned.take(12)
             }
-
-            val candidates = mutableListOf<String>()
-
-            if (mainKey != null) {
-                candidates.addAll(parsePersonajesSection(mainKey, allContent = false))
-            }
-
-            val anexoKey = findAnexoPageKey(title)
-            if (anexoKey != null) {
-                candidates.addAll(parsePersonajesSection(anexoKey, allContent = true))
-            }
-
-            val cleaned = candidates
-                .map { cleanCharacterName(it) }
-                .filter { it.length in 2..60 }
-                .filter { it.split(" ").size <= 6 }
-                .filterNot { isStructuralJunk(it) }
-                .distinct()
-
-            Log.d(TAG, "Characters (Wikipedia) for '$title': ${cleaned.take(12)}")
-            cleaned.take(12)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Error fetching characters for '$title'", e)
             emptyList()
@@ -938,6 +944,8 @@ class PortadaResolver {
             val json = JSONObject(response.body?.string() ?: return null)
             val qid = json.optString("wikibase_item", null)
             qid?.takeIf { it.startsWith("Q") && it.length > 1 }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Error fetching Wikidata item id for $pageKey", e)
             null
@@ -996,6 +1004,8 @@ class PortadaResolver {
                 names.add(name)
             }
             names.toList()
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Error fetching Wikidata characters for $qid", e)
             emptyList()
@@ -1094,6 +1104,8 @@ class PortadaResolver {
             }
 
             return names.toList()
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Error parsing characters page $pageKey", e)
             return emptyList()
