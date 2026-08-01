@@ -990,18 +990,22 @@ class PortadaResolver {
                     }
                 }
             }
-            val p674 = entity.optJSONObject("claims")?.optJSONArray("P674") ?: return emptyList()
+            val claims = entity.optJSONObject("claims")
+            val p674 = claims?.optJSONArray("P674")
 
             val charIds = LinkedHashSet<String>()
-            for (i in 0 until p674.length()) {
-                val claim = p674.optJSONObject(i) ?: continue
-                val value = claim
-                    .optJSONObject("mainsnak")
-                    ?.optJSONObject("datavalue")
-                    ?.optJSONObject("value")
-                val id = value?.optString("id", null)
-                if (id != null && id.startsWith("Q")) charIds.add(id)
+            if (p674 != null) {
+                for (i in 0 until p674.length()) {
+                    val claim = p674.optJSONObject(i) ?: continue
+                    val value = claim
+                        .optJSONObject("mainsnak")
+                        ?.optJSONObject("datavalue")
+                        ?.optJSONObject("value")
+                    val id = value?.optString("id", null)
+                    if (id != null && id.startsWith("Q")) charIds.add(id)
+                }
             }
+            charIds.addAll(fetchReverseWikidataCharacters(qid))
             if (charIds.isEmpty()) return emptyList()
 
             val labelsUrl = "https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${charIds.joinToString("|")}&props=labels&languages=es%7Cen&format=json"
@@ -1035,6 +1039,36 @@ class PortadaResolver {
         } catch (e: Exception) {
             Log.e(TAG, "Error fetching Wikidata characters for $qid", e)
             emptyList()
+        }
+    }
+
+    private suspend fun fetchReverseWikidataCharacters(qid: String): Set<String> {
+        return try {
+            val query = "SELECT ?char WHERE { ?char wdt:P1441 wd:$qid . }"
+            val encodedQuery = java.net.URLEncoder.encode(query, "UTF-8")
+            val url = "https://query.wikidata.org/sparql?query=$encodedQuery&format=json"
+            val request = Request.Builder()
+                .url(url)
+                .header("User-Agent", "Alexandria/1.0 (Android Book Tracker)")
+                .header("Accept", "application/json")
+                .build()
+            val response = withContext(Dispatchers.IO) { client.newCall(request).execute() }
+            if (!response.isSuccessful) return emptySet()
+            val json = JSONObject(response.body?.string() ?: return emptySet())
+            val bindings = json.optJSONObject("results")?.optJSONArray("bindings") ?: return emptySet()
+            val ids = LinkedHashSet<String>()
+            for (i in 0 until bindings.length()) {
+                val binding = bindings.optJSONObject(i) ?: continue
+                val uri = binding.optJSONObject("char")?.optString("value", null) ?: continue
+                val id = uri.substringAfterLast('/')
+                if (id.startsWith("Q") && id.length > 1) ids.add(id)
+            }
+            ids
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching reverse Wikidata characters for $qid", e)
+            emptySet()
         }
     }
 

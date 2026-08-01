@@ -64,19 +64,21 @@ class BookDetailViewModel @Inject constructor(
     private fun loadBook() {
         viewModelScope.launch {
             repository.getBookById(bookId).collect { book ->
-                _uiState.value = _uiState.value.copy(
-                    book = book,
+                val current = _uiState.value
+                val effective = book ?: current.book
+                _uiState.value = current.copy(
+                    book = effective,
                     isLoading = false,
-                    description = book?.description,
-                    coverUrl = book?.coverUrl ?: book?.coverLocalPath
+                    description = effective?.description ?: current.description,
+                    coverUrl = effective?.coverUrl ?: effective?.coverLocalPath
                 )
-                if (book != null && !descriptionFetched) {
+                if (effective != null && !descriptionFetched) {
                     descriptionFetched = true
-                    fetchDescription(book)
+                    fetchDescription(effective)
                 }
-                if (book != null && !coverFetched) {
+                if (effective != null && !coverFetched) {
                     coverFetched = true
-                    fetchCover(book)
+                    fetchCover(effective)
                 }
             }
         }
