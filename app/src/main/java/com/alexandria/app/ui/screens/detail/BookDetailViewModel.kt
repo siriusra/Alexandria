@@ -15,8 +15,10 @@ import com.alexandria.app.data.repository.BookRepository
 import com.alexandria.app.ui.components.ICON_TYPE_EMOJI
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 import javax.inject.Inject
 
 data class DetailUiState(
@@ -104,72 +106,99 @@ class BookDetailViewModel @Inject constructor(
         var externalRating: Double? = null
         var externalRatingsCount: Int? = null
         var ratingSource: String? = null
-        val sources = preferencesManager.synopsisSources.first()
+        try {
+            val sources = preferencesManager.synopsisSources.first()
 
-        for (key in sources.enabledSources) {
-            when (key) {
-                "isbn" -> if (!book.isbn.isNullOrBlank()) {
-                    val candidate = portadaResolver.fetchDescriptionFromIsbn(book.isbn)
-                    if (desc == null && candidate != null && portadaResolver.isSpanishText(candidate)) {
-                        desc = candidate
-                    }
-                }
-                "todostuslibros" -> if (desc == null && !book.isbn.isNullOrBlank()) {
-                    val candidate = portadaResolver.fetchDescriptionFromTodoTusLibros(book.isbn)
-                    if (candidate != null && portadaResolver.isSpanishText(candidate)) {
-                        desc = candidate
-                    }
-                }
-                "casa_del_libro" -> if (desc == null) {
-                    val candidate = portadaResolver.fetchDescriptionFromCasaDelLibro(book.title, book.author)
-                    if (candidate != null && portadaResolver.isSpanishText(candidate)) {
-                        desc = candidate
-                    }
-                }
-                "openlibrary" -> {
-                    val olData = portadaResolver.fetchDescriptionBySearch(book.title, book.author, lang = "spa")
-                    if (olData != null) {
-                        if (desc == null && olData.description != null && portadaResolver.isSpanishText(olData.description)) {
-                            desc = olData.description
+            for (key in sources.enabledSources) {
+                when (key) {
+                    "isbn" -> if (!book.isbn.isNullOrBlank()) {
+                        val candidate = timed {
+                            portadaResolver.fetchDescriptionFromIsbn(book.isbn)
                         }
-                        if (externalRating == null && olData.averageRating != null) {
-                            externalRating = olData.averageRating
-                            externalRatingsCount = olData.ratingsCount
-                            ratingSource = "OpenLibrary"
+                        if (desc == null && candidate != null && portadaResolver.isSpanishText(candidate)) {
+                            desc = candidate
                         }
                     }
-                }
-                "wikipedia" -> if (desc == null) {
-                    val candidate = portadaResolver.fetchDescriptionFromWikipedia(book.title, book.author)
-                    if (candidate != null && portadaResolver.isSpanishText(candidate)) {
-                        desc = candidate
-                    }
-                }
-                "google_books" -> {
-                    val googleData = portadaResolver.fetchFromGoogleBooks(book.title, book.author, book.isbn)
-                    if (googleData != null) {
-                        if (desc == null && googleData.description != null && portadaResolver.isSpanishText(googleData.description)) {
-                            desc = googleData.description
+                    "todostuslibros" -> if (desc == null && !book.isbn.isNullOrBlank()) {
+                        val candidate = timed {
+                            portadaResolver.fetchDescriptionFromTodoTusLibros(book.isbn)
                         }
-                        if (externalRating == null && googleData.averageRating != null) {
-                            externalRating = googleData.averageRating
-                            externalRatingsCount = googleData.ratingsCount
-                            ratingSource = "Google Books"
+                        if (candidate != null && portadaResolver.isSpanishText(candidate)) {
+                            desc = candidate
+                        }
+                    }
+                    "casa_del_libro" -> if (desc == null) {
+                        val candidate = timed {
+                            portadaResolver.fetchDescriptionFromCasaDelLibro(book.title, book.author)
+                        }
+                        if (candidate != null && portadaResolver.isSpanishText(candidate)) {
+                            desc = candidate
+                        }
+                    }
+                    "openlibrary" -> {
+                        val olData = timed {
+                            portadaResolver.fetchDescriptionBySearch(book.title, book.author, lang = "spa")
+                        }
+                        if (olData != null) {
+                            if (desc == null && olData.description != null && portadaResolver.isSpanishText(olData.description)) {
+                                desc = olData.description
+                            }
+                            if (externalRating == null && olData.averageRating != null) {
+                                externalRating = olData.averageRating
+                                externalRatingsCount = olData.ratingsCount
+                                ratingSource = "OpenLibrary"
+                            }
+                        }
+                    }
+                    "wikipedia" -> if (desc == null) {
+                        val candidate = timed {
+                            portadaResolver.fetchDescriptionFromWikipedia(book.title, book.author)
+                        }
+                        if (candidate != null && portadaResolver.isSpanishText(candidate)) {
+                            desc = candidate
+                        }
+                    }
+                    "google_books" -> {
+                        val googleData = timed {
+                            portadaResolver.fetchFromGoogleBooks(book.title, book.author, book.isbn)
+                        }
+                        if (googleData != null) {
+                            if (desc == null && googleData.description != null && portadaResolver.isSpanishText(googleData.description)) {
+                                desc = googleData.description
+                            }
+                            if (externalRating == null && googleData.averageRating != null) {
+                                externalRating = googleData.averageRating
+                                externalRatingsCount = googleData.ratingsCount
+                                ratingSource = "Google Books"
+                            }
                         }
                     }
                 }
             }
-        }
 
-        _uiState.value = _uiState.value.copy(
-            description = desc ?: _uiState.value.description,
-            isDescriptionLoading = false,
-            externalRating = externalRating,
-            externalRatingsCount = externalRatingsCount,
-            ratingSource = ratingSource
-        )
-        if (desc != null && desc != book.description) {
-            repository.updateBookDescription(book.id, desc)
+            _uiState.value = _uiState.value.copy(
+                description = desc ?: _uiState.value.description,
+                externalRating = externalRating,
+                externalRatingsCount = externalRatingsCount,
+                ratingSource = ratingSource
+            )
+            if (desc != null && desc != book.description) {
+                repository.updateBookDescription(book.id, desc)
+            }
+        } finally {
+            _uiState.value = _uiState.value.copy(isDescriptionLoading = false)
+        }
+    }
+
+    private suspend fun <T> timed(block: suspend () -> T): T? {
+        return try {
+            withTimeout(15_000) { block() }
+        } catch (e: TimeoutCancellationException) {
+            null
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            null
         }
     }
 

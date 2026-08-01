@@ -29,6 +29,7 @@ class PortadaResolver {
     private val client = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(10, TimeUnit.SECONDS)
+        .callTimeout(15, TimeUnit.SECONDS)
         .followRedirects(false)
         .build()
 
@@ -635,7 +636,7 @@ class PortadaResolver {
             .url(url)
             .header("User-Agent", "Alexandria/1.0 (Android Book Tracker)")
             .build()
-        val response = client.newCall(request).execute()
+        val response = withContext(Dispatchers.IO) { client.newCall(request).execute() }
         if (!response.isSuccessful) return null
         val body = response.body?.string() ?: return null
         val json = JSONObject(body)
@@ -949,7 +950,7 @@ class PortadaResolver {
                 .url(url)
                 .header("User-Agent", "Alexandria/1.0 (Android Book Tracker)")
                 .build()
-            val response = client.newCall(request).execute()
+            val response = withContext(Dispatchers.IO) { client.newCall(request).execute() }
             if (!response.isSuccessful) return null
             val json = JSONObject(response.body?.string() ?: return null)
             val qid = json.optString("wikibase_item", null)
@@ -970,7 +971,7 @@ class PortadaResolver {
                 .url(claimsUrl)
                 .header("User-Agent", "Alexandria/1.0 (Android Book Tracker)")
                 .build()
-            val claimsRes = client.newCall(claimsReq).execute()
+            val claimsRes = withContext(Dispatchers.IO) { client.newCall(claimsReq).execute() }
             if (!claimsRes.isSuccessful) return emptyList()
             val claimsJson = JSONObject(claimsRes.body?.string() ?: return emptyList())
             val entity = claimsJson.optJSONObject("entities")?.optJSONObject(qid) ?: return emptyList()
@@ -1008,7 +1009,7 @@ class PortadaResolver {
                 .url(labelsUrl)
                 .header("User-Agent", "Alexandria/1.0 (Android Book Tracker)")
                 .build()
-            val labelsRes = client.newCall(labelsReq).execute()
+            val labelsRes = withContext(Dispatchers.IO) { client.newCall(labelsReq).execute() }
             if (!labelsRes.isSuccessful) return emptyList()
             val labelsJson = JSONObject(labelsRes.body?.string() ?: return emptyList())
             val entities = labelsJson.optJSONObject("entities") ?: return emptyList()
@@ -1076,7 +1077,7 @@ class PortadaResolver {
         return null
     }
 
-    private fun parsePersonajesSection(pageKey: String, allContent: Boolean): List<String> {
+    private suspend fun parsePersonajesSection(pageKey: String, allContent: Boolean): List<String> {
         try {
             val encodedKey = java.net.URLEncoder.encode(pageKey, "UTF-8").replace("+", "%20")
             val url = "https://es.wikipedia.org/wiki/$encodedKey"
@@ -1084,7 +1085,7 @@ class PortadaResolver {
                 .url(url)
                 .header("User-Agent", "Alexandria/1.0 (Android Book Tracker)")
                 .build()
-            val response = webClient.newCall(request).execute()
+            val response = withContext(Dispatchers.IO) { webClient.newCall(request).execute() }
             if (!response.isSuccessful) return emptyList()
             val html = response.body?.string() ?: return emptyList()
             val doc = Jsoup.parse(html)
