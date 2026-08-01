@@ -5,6 +5,7 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("com.google.devtools.ksp")
     id("com.google.dagger.hilt.android")
+    id("com.google.gms.google-services") version "4.4.2" apply false
 }
 
 val keystorePropertiesFile = rootProject.file("keystore.properties")
@@ -142,3 +143,5 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
+
+apply(plugin = "com.google.gms.google-services")
