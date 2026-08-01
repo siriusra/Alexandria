@@ -83,6 +83,10 @@ class BookRepository @Inject constructor(
         }
     }
 
+    suspend fun updateBookDescription(bookId: Long, description: String?) {
+        bookDao.updateDescription(bookId, description)
+    }
+
     suspend fun deleteBook(book: Book) {
         bookDao.deleteBook(book.toEntity())
     }
@@ -189,6 +193,7 @@ class BookRepository @Inject constructor(
             coverLocalPath = coverLocalPath,
             rating = rating,
             notes = notes,
+            description = description,
             pageCount = pageCount,
             currentPage = currentPage,
             isbn = isbn,
@@ -235,6 +240,7 @@ class BookRepository @Inject constructor(
             coverLocalPath = coverLocalPath,
             rating = rating,
             notes = notes,
+            description = description,
             pageCount = pageCount,
             currentPage = currentPage,
             isbn = isbn,

@@ -14,7 +14,7 @@ import com.alexandria.app.data.local.entity.CoverCacheEntity
 
 @Database(
     entities = [BookEntity::class, CoverCacheEntity::class, BookCharacterEntity::class],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class AlexandriaDatabase : RoomDatabase() {
@@ -58,13 +58,17 @@ abstract class AlexandriaDatabase : RoomDatabase() {
             db.execSQL("CREATE INDEX IF NOT EXISTS index_book_characters_bookId ON book_characters(bookId)")
         }
 
+        val MIGRATION_4_5 = Migration(4, 5) { db ->
+            db.execSQL("ALTER TABLE books ADD COLUMN description TEXT")
+        }
+
         fun getDatabase(context: Context): AlexandriaDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AlexandriaDatabase::class.java,
                     "alexandria_database"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build()
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build()
                 INSTANCE = instance
                 instance
             }

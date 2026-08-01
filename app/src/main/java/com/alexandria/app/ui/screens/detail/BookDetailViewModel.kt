@@ -65,6 +65,7 @@ class BookDetailViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     book = book,
                     isLoading = false,
+                    description = book?.description,
                     coverUrl = book?.coverUrl ?: book?.coverLocalPath
                 )
                 if (book != null && !descriptionFetched) {
@@ -145,7 +146,7 @@ class BookDetailViewModel @Inject constructor(
                     }
                 }
                 "google_books" -> {
-                    val googleData = portadaResolver.fetchFromGoogleBooks(book.title, book.author)
+                    val googleData = portadaResolver.fetchFromGoogleBooks(book.title, book.author, book.isbn)
                     if (googleData != null) {
                         if (desc == null && googleData.description != null && portadaResolver.isSpanishText(googleData.description)) {
                             desc = googleData.description
@@ -161,12 +162,15 @@ class BookDetailViewModel @Inject constructor(
         }
 
         _uiState.value = _uiState.value.copy(
-            description = desc,
+            description = desc ?: _uiState.value.description,
             isDescriptionLoading = false,
             externalRating = externalRating,
             externalRatingsCount = externalRatingsCount,
             ratingSource = ratingSource
         )
+        if (desc != null && desc != book.description) {
+            repository.updateBookDescription(book.id, desc)
+        }
     }
 
     fun updateCurrentPage(page: Int) {

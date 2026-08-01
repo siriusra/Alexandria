@@ -45,6 +45,8 @@ class AddBookViewModel @Inject constructor(
 
     private val editBookId: Long = savedStateHandle["bookId"] ?: 0L
 
+    private var editingDescription: String? = null
+
     init {
         if (editBookId > 0) {
             _uiState.value = _uiState.value.copy(isEditing = true)
@@ -55,6 +57,7 @@ class AddBookViewModel @Inject constructor(
     private fun loadBook(bookId: Long) {
         viewModelScope.launch {
             repository.getBookById(bookId).first()?.let { book ->
+                editingDescription = book.description
                 _uiState.value = _uiState.value.copy(
                     title = book.title,
                     author = book.author,
@@ -186,6 +189,7 @@ class AddBookViewModel @Inject constructor(
                 coverUrl = state.coverUrl,
                 rating = state.rating,
                 notes = state.notes.trim().ifBlank { null },
+                description = if (state.isEditing) editingDescription else null,
                 pageCount = state.pageCount.toIntOrNull(),
                 isbn = state.isbn.trim().ifBlank { null }
             )

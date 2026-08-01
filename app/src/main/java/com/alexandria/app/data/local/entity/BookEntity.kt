@@ -18,6 +18,7 @@ data class BookEntity(
     val coverLocalPath: String? = null,
     val rating: Float? = null,
     val notes: String? = null,
+    val description: String? = null,
     val pageCount: Int? = null,
     val currentPage: Int = 0,
     val isbn: String? = null,

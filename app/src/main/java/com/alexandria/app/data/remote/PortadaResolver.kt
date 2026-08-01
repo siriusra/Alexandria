@@ -751,7 +751,8 @@ class PortadaResolver {
 
     suspend fun fetchDescriptionFromIsbn(isbn: String): String? = withContext(Dispatchers.IO) {
         try {
-            val url = "https://openlibrary.org/isbn/$isbn.json"
+            val normalizedIsbn = IsbnNormalizer.toIsbn13(isbn) ?: return@withContext null
+            val url = "https://openlibrary.org/isbn/$normalizedIsbn.json"
             val request = Request.Builder()
                 .url(url)
                 .header("User-Agent", "Alexandria/1.0 (Android Book Tracker)")
@@ -795,7 +796,7 @@ class PortadaResolver {
 
     suspend fun fetchDescriptionFromTodoTusLibros(isbn: String): String? = withContext(Dispatchers.IO) {
         try {
-            val cleanIsbn = isbn.replace(Regex("[\\s-]"), "")
+            val cleanIsbn = IsbnNormalizer.toIsbn13(isbn) ?: return@withContext null
             val url = "https://www.todostuslibros.com/busquedas?isbn=$cleanIsbn"
             val redirectClient = client.newBuilder()
                 .connectTimeout(10, TimeUnit.SECONDS)
@@ -844,40 +845,49 @@ class PortadaResolver {
         }
     }
 
-    suspend fun fetchFromGoogleBooks(title: String, author: String): GoogleBooksData? = withContext(Dispatchers.IO) {
+    suspend fun fetchFromGoogleBooks(title: String, author: String, isbn: String? = null): GoogleBooksData? = withContext(Dispatchers.IO) {
         try {
-            val query = java.net.URLEncoder.encode("$title $author", "UTF-8")
+            val normalizedIsbn = isbn?.let { IsbnNormalizer.toIsbn13(it) }
             val apiKey = BuildConfig.GOOGLE_BOOKS_API_KEY
             val keyParam = if (apiKey.isNotBlank()) "&key=$apiKey" else ""
-            val url = "https://www.googleapis.com/books/v1/volumes?q=$query&langRestrict=es&maxResults=5&printType=books$keyParam"
 
-            val request = Request.Builder()
-                .url(url)
-                .header("User-Agent", "Alexandria/1.0 (Android Book Tracker)")
-                .build()
-            val response = client.newCall(request).execute()
-            if (!response.isSuccessful) return@withContext null
-            val body = response.body?.string() ?: return@withContext null
-            val json = JSONObject(body)
-            val items = json.optJSONArray("items") ?: return@withContext null
+            val queries = buildList {
+                normalizedIsbn?.let { add("isbn:$it") }
+                add("$title $author")
+            }
 
-            for (i in 0 until items.length()) {
-                val item = items.getJSONObject(i)
-                val vi = item.optJSONObject("volumeInfo") ?: continue
-                val itemTitle = vi.optString("title", "").lowercase()
-                val itemDesc = vi.optString("description", null)
-                val itemRating = vi.optDouble("averageRating", -1.0)
-                val itemRatingsCount = vi.optInt("ratingsCount", -1)
+            for (query in queries) {
+                val encoded = java.net.URLEncoder.encode(query, "UTF-8")
+                val url = "https://www.googleapis.com/books/v1/volumes?q=$encoded&langRestrict=es&maxResults=5&printType=books$keyParam"
 
-                val titleWords = title.lowercase().split(" ").filter { it.length > 2 }
-                val matchScore = titleWords.count { word -> itemTitle.contains(word) }
-                if (matchScore == 0 || (itemDesc == null && itemRating < 0)) continue
+                val request = Request.Builder()
+                    .url(url)
+                    .header("User-Agent", "Alexandria/1.0 (Android Book Tracker)")
+                    .build()
+                val response = client.newCall(request).execute()
+                if (!response.isSuccessful) continue
+                val body = response.body?.string() ?: continue
+                val json = JSONObject(body)
+                val items = json.optJSONArray("items") ?: continue
 
-                return@withContext GoogleBooksData(
-                    description = itemDesc,
-                    averageRating = if (itemRating >= 0) itemRating else null,
-                    ratingsCount = if (itemRatingsCount > 0) itemRatingsCount else null
-                )
+                for (i in 0 until items.length()) {
+                    val item = items.getJSONObject(i)
+                    val vi = item.optJSONObject("volumeInfo") ?: continue
+                    val itemTitle = vi.optString("title", "").lowercase()
+                    val itemDesc = vi.optString("description", null)
+                    val itemRating = vi.optDouble("averageRating", -1.0)
+                    val itemRatingsCount = vi.optInt("ratingsCount", -1)
+
+                    val titleWords = title.lowercase().split(" ").filter { it.length > 2 }
+                    val matchScore = titleWords.count { word -> itemTitle.contains(word) }
+                    if (matchScore == 0 || (itemDesc == null && itemRating < 0)) continue
+
+                    return@withContext GoogleBooksData(
+                        description = itemDesc,
+                        averageRating = if (itemRating >= 0) itemRating else null,
+                        ratingsCount = if (itemRatingsCount > 0) itemRatingsCount else null
+                    )
+                }
             }
             null
         } catch (e: Exception) {
@@ -964,6 +974,21 @@ class PortadaResolver {
             if (!claimsRes.isSuccessful) return emptyList()
             val claimsJson = JSONObject(claimsRes.body?.string() ?: return emptyList())
             val entity = claimsJson.optJSONObject("entities")?.optJSONObject(qid) ?: return emptyList()
+            val p31 = entity.optJSONObject("claims")?.optJSONArray("P31")
+            if (p31 != null) {
+                for (i in 0 until p31.length()) {
+                    val claim = p31.optJSONObject(i) ?: continue
+                    val value = claim
+                        .optJSONObject("mainsnak")
+                        ?.optJSONObject("datavalue")
+                        ?.optJSONObject("value")
+                    val id = value?.optString("id", null)
+                    if (id != null && id in NON_BOOK_P31) {
+                        Log.d(TAG, "Skipping Wikidata item $qid: type $id is not a book")
+                        return emptyList()
+                    }
+                }
+            }
             val p674 = entity.optJSONObject("claims")?.optJSONArray("P674") ?: return emptyList()
 
             val charIds = LinkedHashSet<String>()
@@ -1157,5 +1182,16 @@ class PortadaResolver {
 
     companion object {
         private const val TAG = "PortadaResolver"
+
+        private val NON_BOOK_P31 = setOf(
+            "Q11424",     // película
+            "Q7889",      // videojuego
+            "Q5398426",   // serie de televisión
+            "Q1107",      // anime
+            "Q8274",      // manga
+            "Q95074",     // personaje de ficción
+            "Q482994",    // álbum
+            "Q7366"       // canción
+        )
     }
 }
