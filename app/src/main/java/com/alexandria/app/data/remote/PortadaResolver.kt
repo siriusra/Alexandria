@@ -566,7 +566,13 @@ class PortadaResolver {
     private fun String.normalizeForMatch(): String =
         lowercase().trim().replace(Regex("[^a-záéíóúñü0-9\\s]"), "")
 
-    private fun JSONArray.findBestPage(title: String): String? {
+    private fun shareSignificantWord(a: String, b: String): Boolean {
+        val wordsA = a.split(" ").filter { it.length > 3 }.toSet()
+        val wordsB = b.split(" ").filter { it.length > 3 }.toSet()
+        return wordsA.any { it in wordsB }
+    }
+
+    private fun JSONArray.findBestPage(title: String, requireTitleOverlap: Boolean = false): String? {
         val normTitle = title.normalizeForMatch()
         val bookKeywords = listOf(
             "novela", "libro", "cuento", "obra literaria", "literatura", "relato",
@@ -612,7 +618,7 @@ class PortadaResolver {
             if (containsKey == null && normPageTitle.contains(normTitle)) {
                 containsKey = page.optString("key", null)
             }
-            if (bookKey == null && isBook) {
+            if (bookKey == null && isBook && (!requireTitleOverlap || shareSignificantWord(normPageTitle, normTitle))) {
                 bookKey = page.optString("key", null)
             }
         }
@@ -1005,13 +1011,14 @@ class PortadaResolver {
         for (query in queries) {
             val pages = searchWikipediaPage(query) ?: continue
             if (pages.length() == 0) continue
-            val bestKey = pages.findBestPage(title)
+            val bestKey = pages.findBestPage(title, requireTitleOverlap = true)
             if (bestKey != null) return bestKey
         }
         return null
     }
 
     private suspend fun findAnexoPageKey(title: String): String? {
+        val normTitle = title.normalizeForMatch()
         val queries = listOf(
             "Anexo:Personajes de $title",
             "Anexo:Personajes de \"$title\"",
@@ -1024,7 +1031,9 @@ class PortadaResolver {
                 val page = pages.getJSONObject(i)
                 val pageTitle = page.optString("title", "")
                 val key = page.optString("key", null)
-                if (pageTitle.contains("Personajes", ignoreCase = true) && key != null) {
+                if (key == null) continue
+                val normAnnexo = pageTitle.normalizeForMatch()
+                if (normAnnexo.contains("personajes") && shareSignificantWord(normAnnexo, normTitle)) {
                     return key
                 }
             }
