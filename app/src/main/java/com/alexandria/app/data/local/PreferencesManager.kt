@@ -58,6 +58,7 @@ class PreferencesManager(private val context: Context) {
         val COVER_CACHE_ENABLED = booleanPreferencesKey("cover_cache_enabled")
         val VISUAL_MODE = stringPreferencesKey("visual_mode")
         val FIRST_LAUNCH_COMPLETED = booleanPreferencesKey("first_launch_completed")
+        val PUSH_NOTIFICATIONS_ENABLED = booleanPreferencesKey("push_notifications_enabled")
 
         fun getDefaultCoverConfig(): CoverSourceConfig = CoverSourceConfig()
     }
@@ -111,6 +112,16 @@ class PreferencesManager(private val context: Context) {
 
     val firstLaunchCompleted: Flow<Boolean> = context.dataStore.data.map { prefs ->
         prefs[FIRST_LAUNCH_COMPLETED] ?: false
+    }
+
+    val pushNotificationsEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[PUSH_NOTIFICATIONS_ENABLED] ?: true
+    }
+
+    suspend fun setPushNotificationsEnabled(enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[PUSH_NOTIFICATIONS_ENABLED] = enabled
+        }
     }
 
     suspend fun setDarkTheme(enabled: Boolean) {

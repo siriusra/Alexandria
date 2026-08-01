@@ -246,6 +246,33 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            Text("Notificaciones", style = MaterialTheme.typography.titleMedium)
+
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("Notificaciones push")
+                            Text(
+                                text = "Recibir mensajes aunque la app esté cerrada",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = uiState.pushNotificationsEnabled,
+                            onCheckedChange = { viewModel.setPushNotificationsEnabled(it) }
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             Text("Fuentes", style = MaterialTheme.typography.titleMedium)
 
             Card(

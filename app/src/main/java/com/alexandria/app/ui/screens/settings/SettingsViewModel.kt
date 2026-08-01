@@ -36,6 +36,7 @@ data class SettingsUiState(
     val visualMode: VisualMode = VisualMode.CLASSIC,
     val synopsisSources: com.alexandria.app.data.local.SynopsisSourceConfig = com.alexandria.app.data.local.SynopsisSourceConfig(),
     val coverSourcesConfig: CoverSourceConfig = CoverSourceConfig(),
+    val pushNotificationsEnabled: Boolean = true,
     val exportMessage: String? = null,
     val updateInfo: UpdateInfo? = null,
     val isCheckingUpdate: Boolean = false,
@@ -82,6 +83,11 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             preferencesManager.visualMode.collect { mode ->
                 _uiState.value = _uiState.value.copy(visualMode = mode)
+            }
+        }
+        viewModelScope.launch {
+            preferencesManager.pushNotificationsEnabled.collect { enabled ->
+                _uiState.value = _uiState.value.copy(pushNotificationsEnabled = enabled)
             }
         }
     }
@@ -155,6 +161,12 @@ class SettingsViewModel @Inject constructor(
     fun setCoverCacheEnabled(enabled: Boolean) {
         viewModelScope.launch {
             preferencesManager.setCoverCacheEnabled(enabled)
+        }
+    }
+
+    fun setPushNotificationsEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesManager.setPushNotificationsEnabled(enabled)
         }
     }
 
