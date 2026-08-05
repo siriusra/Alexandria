@@ -85,17 +85,32 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    outputs:
+      has_firebase_creds: ${{ steps.check-creds.outputs.has_creds }}
     steps:
+    - name: Check FIREBASE_SERVICE_ACCOUNT configured
+      id: check-creds
+      env:
+        FSA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      run: |
+        if [ -n "$FSA" ]; then
+          echo "has_creds=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "has_creds=false" >> "$GITHUB_OUTPUT"
+        fi
+
     - name: Checkout code
+      if: steps.check-creds.outputs.has_creds == 'true'
       uses: actions/checkout@v4
 
     - name: Authenticate to Google Cloud
-      if: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
+      if: steps.check-creds.outputs.has_creds == 'true'
       uses: google-github-actions/auth@v2
       with:
         credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
 
     - name: Set up Node 20
+      if: steps.check-creds.outputs.has_creds == 'true'
       uses: actions/setup-node@v4
       with:
         node-version: 20
@@ -103,26 +118,34 @@ jobs:
         cache-dependency-path: functions/package-lock.json
 
     - name: Install functions dependencies
+      if: steps.check-creds.outputs.has_creds == 'true'
       working-directory: functions
       run: npm ci
 
     - name: Build functions (tsc)
+      if: steps.check-creds.outputs.has_creds == 'true'
       working-directory: functions
       run: npm run build
 
     - name: Set OPENROUTER_API_KEY secret
-      if: ${{ secrets.OPENROUTER_API_KEY != '' }}
+      if: steps.check-creds.outputs.has_creds == 'true'
       env:
         ORK: ${{ secrets.OPENROUTER_API_KEY }}
-      run: echo "$ORK" | firebase functions:secrets:set OPENROUTER_API_KEY --project alexandria-d3397 --force
+      run: |
+        if [ -n "$ORK" ]; then
+          echo "$ORK" | firebase functions:secrets:set OPENROUTER_API_KEY --project alexandria-d3397 --force
+        fi
 
     - name: Set GOOGLE_BOOKS_API_KEY secret
-      if: ${{ secrets.GOOGLE_BOOKS_API_KEY != '' }}
+      if: steps.check-creds.outputs.has_creds == 'true'
       env:
         GBK: ${{ secrets.GOOGLE_BOOKS_API_KEY }}
-      run: echo "$GBK" | firebase functions:secrets:set GOOGLE_BOOKS_API_KEY --project alexandria-d3397 --force
+      run: |
+        if [ -n "$GBK" ]; then
+          echo "$GBK" | firebase functions:secrets:set GOOGLE_BOOKS_API_KEY --project alexandria-d3397 --force
+        fi
 
     - name: Deploy Cloud Functions
-      if: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
+      if: steps.check-creds.outputs.has_creds == 'true'
       working-directory: functions
       run: firebase deploy --only functions --project alexandria-d3397 --force
