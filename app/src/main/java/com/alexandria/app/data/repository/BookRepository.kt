@@ -3,8 +3,12 @@ package com.alexandria.app.data.repository
 import android.util.Log
 import com.alexandria.app.data.local.BookCharacterDao
 import com.alexandria.app.data.local.BookDao
+import com.alexandria.app.data.local.CoverStore
+import com.alexandria.app.data.local.MetadataCacheDao
+import com.alexandria.app.data.local.PreferencesManager
 import com.alexandria.app.data.local.entity.BookCharacterEntity
 import com.alexandria.app.data.local.entity.BookEntity
+import com.alexandria.app.data.local.entity.MetadataCacheEntity
 import com.alexandria.app.data.remote.GoogleBookItem
 import com.alexandria.app.data.remote.PortadaResolver
 import com.alexandria.app.domain.model.Book
@@ -12,6 +16,7 @@ import com.alexandria.app.domain.model.BookCharacter
 import com.alexandria.app.domain.model.ReadingStatus
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -20,7 +25,10 @@ import javax.inject.Singleton
 class BookRepository @Inject constructor(
     private val bookDao: BookDao,
     private val bookCharacterDao: BookCharacterDao,
-    private val portadaResolver: PortadaResolver
+    private val portadaResolver: PortadaResolver,
+    private val coverStore: CoverStore,
+    private val preferencesManager: PreferencesManager,
+    private val metadataCacheDao: MetadataCacheDao
 ) {
     fun getAllBooks(): Flow<List<Book>> {
         return bookDao.getAllBooks().map { entities ->
@@ -170,12 +178,88 @@ class BookRepository @Inject constructor(
             )
             if (url != null) {
                 bookDao.updateCoverUrl(bookId, url)
+                persistCoverLocal(bookId, book, url)
                 Log.d(TAG, "Cover resolved for '${book.title}': $url")
             }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             Log.e(TAG, "Error resolving cover for '${book.title}'", e)
+        }
+    }
+
+    private suspend fun persistCoverLocal(bookId: Long, book: Book, coverUrl: String) {
+        try {
+            val downloadEnabled = preferencesManager.coverDownloadEnabled.first()
+            if (!downloadEnabled) return
+            val localPath = coverStore.saveCover(isbn = book.isbn, url = coverUrl)
+            if (localPath != null) {
+                bookDao.updateCoverLocalPath(bookId, localPath)
+                Log.d(TAG, "Cover saved locally for book $bookId: $localPath")
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "Cover download deferred/failed for '${book.title}'", e)
+        }
+    }
+
+    suspend fun ensureCoverPersisted(bookId: Long, book: Book, coverUrl: String) {
+        if (book.coverLocalPath.isNullOrBlank()) {
+            persistCoverLocal(bookId, book, coverUrl)
+        }
+    }
+
+    suspend fun persistCover(bookId: Long, book: Book, coverUrl: String) {
+        if (!book.coverUrl.isNullOrBlank()) return
+        bookDao.updateCoverUrl(bookId, coverUrl)
+        persistCoverLocal(bookId, book, coverUrl)
+    }
+
+    suspend fun getCachedMetadata(isbn: String): MetadataCacheEntity? {
+        if (isbn.isBlank()) return null
+        return try {
+            val cached = metadataCacheDao.get(isbn) ?: return null
+            val expired = System.currentTimeMillis() - cached.timestamp >= cached.ttlMs
+            if (expired) {
+                metadataCacheDao.evictExpired(System.currentTimeMillis())
+                null
+            } else {
+                cached
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "metadata cache read failed for $isbn", e)
+            null
+        }
+    }
+
+    suspend fun cacheMetadata(
+        isbn: String,
+        description: String?,
+        averageRating: Float?,
+        ratingsCount: Int?,
+        source: String
+    ) {
+        if (isbn.isBlank()) return
+        try {
+            val ttlMs = 7L * 24 * 60 * 60 * 1000
+            metadataCacheDao.put(
+                MetadataCacheEntity(
+                    isbn = isbn,
+                    description = description,
+                    averageRating = averageRating,
+                    ratingsCount = ratingsCount,
+                    source = source,
+                    timestamp = System.currentTimeMillis(),
+                    ttlMs = ttlMs
+                )
+            )
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "metadata cache write failed for $isbn", e)
         }
     }
 

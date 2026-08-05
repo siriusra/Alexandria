@@ -232,7 +232,7 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val books = repository.getAllBooks().first()
-                val json = Gson().toJson(books)
+                val json = Gson().toJson(books.map { it.copy(coverLocalPath = null) })
                 val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
                 val dir = android.os.Environment.getExternalStoragePublicDirectory(
                     android.os.Environment.DIRECTORY_DOWNLOADS
@@ -276,7 +276,7 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val books = repository.getAllBooks().first()
-                val json = Gson().toJson(books)
+                val json = Gson().toJson(books.map { it.copy(coverLocalPath = null) })
                 context.contentResolver.openOutputStream(uri)?.use { it.write(json.toByteArray()) }
                 _uiState.value = _uiState.value.copy(
                     exportMessage = "Exportado correctamente"
@@ -310,7 +310,7 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val books = repository.getAllBooks().first()
-                val json = Gson().toJson(books)
+                val json = Gson().toJson(books.map { it.copy(coverLocalPath = null) })
                 val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
                 val exportDir = File(context.cacheDir, "exports")
                 exportDir.mkdirs()

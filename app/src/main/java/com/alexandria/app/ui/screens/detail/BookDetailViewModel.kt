@@ -7,17 +7,24 @@ import androidx.lifecycle.viewModelScope
 import com.alexandria.app.data.local.CoverCacheDao
 import com.alexandria.app.data.local.PreferencesManager
 import com.alexandria.app.data.model.CoverSourceConfig
+import com.alexandria.app.data.remote.CloudBookMetadata
+import com.alexandria.app.data.remote.CloudResolver
 import com.alexandria.app.data.remote.PortadaResolver
 import com.alexandria.app.domain.model.Book
 import com.alexandria.app.domain.model.BookCharacter
 import com.alexandria.app.domain.model.ReadingStatus
 import com.alexandria.app.data.repository.BookRepository
 import com.alexandria.app.ui.components.ICON_TYPE_EMOJI
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.messaging.FirebaseMessaging
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withTimeout
 import javax.inject.Inject
 
@@ -41,7 +48,9 @@ class BookDetailViewModel @Inject constructor(
     private val repository: BookRepository,
     private val portadaResolver: PortadaResolver,
     private val preferencesManager: PreferencesManager,
-    private val coverCacheDao: CoverCacheDao
+    private val coverCacheDao: CoverCacheDao,
+    private val cloudResolver: CloudResolver,
+    private val auth: FirebaseAuth
 ) : ViewModel() {
 
     private val bookId: Long = savedStateHandle.get<Long>("bookId") ?: 0L
@@ -60,6 +69,71 @@ class BookDetailViewModel @Inject constructor(
 
     private var descriptionFetched = false
     private var coverFetched = false
+    private var cloudAttempted = false
+    private var topicSubscribed = false
+
+    private suspend fun currentUid(): String? {
+        return try {
+            val user = auth.currentUser ?: auth.signInAnonymously().await().user
+            user?.uid?.takeIf { it.isNotBlank() }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private suspend fun subscribeToUserTopic(uid: String) {
+        if (topicSubscribed) return
+        topicSubscribed = true
+        try {
+            FirebaseMessaging.getInstance().subscribeToTopic("user-$uid").await()
+        } catch (e: Exception) {
+            // Topic subscription is best-effort; cloud resolution still works on demand.
+        }
+    }
+
+    private suspend fun tryCloudResolve(book: Book) {
+        if (cloudAttempted) return
+        val uid = currentUid() ?: return
+        subscribeToUserTopic(uid)
+        cloudAttempted = true
+        val metadata = try {
+            withTimeout(15_000L) { cloudResolver.resolveBook(uid, book) }
+        } catch (e: Exception) {
+            null
+        } ?: return
+        val current = _uiState.value
+        var updated = current
+
+        if (!metadata.coverUrl.isNullOrBlank()) {
+            repository.persistCover(book.id, book, metadata.coverUrl)
+            updated = updated.copy(coverUrl = metadata.coverUrl)
+        }
+        if (!metadata.description.isNullOrBlank() && metadata.description != book.description) {
+            repository.updateBookDescription(book.id, metadata.description)
+            updated = updated.copy(description = metadata.description)
+        }
+        if (metadata.averageRating != null) {
+            updated = updated.copy(
+                externalRating = metadata.averageRating,
+                externalRatingsCount = metadata.ratingsCount,
+                ratingSource = metadata.ratingSource ?: "cloud"
+            )
+        }
+        if (metadata.characters.isNotEmpty() && updated.characters.isEmpty()) {
+            val chars = metadata.characters.map { c ->
+                BookCharacter(
+                    bookId = book.id,
+                    name = c.name,
+                    isFavorite = c.isFavorite,
+                    iconType = ICON_TYPE_EMOJI,
+                    iconKey = c.emoji?.ifBlank { null } ?: ""
+                )
+            }
+            repository.addCharacters(chars)
+            updated = updated.copy(characters = updated.characters + chars)
+        }
+        _uiState.value = updated
+    }
 
     private fun loadBook() {
         if (bookId == 0L) {
@@ -111,6 +185,8 @@ class BookDetailViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(coverUrl = book.coverUrl ?: book.coverLocalPath)
             return
         }
+        tryCloudResolve(book)
+        if (_uiState.value.coverUrl != null) return
         val config = preferencesManager.coverSourcesConfig.first()
         val coverUrl = portadaResolver.resolverCover(
             isbn = book.isbn,
@@ -120,6 +196,7 @@ class BookDetailViewModel @Inject constructor(
             config = config
         )
         if (coverUrl != null) {
+            repository.persistCover(book.id, book, coverUrl)
             _uiState.value = _uiState.value.copy(coverUrl = coverUrl)
         }
     }
@@ -131,7 +208,36 @@ class BookDetailViewModel @Inject constructor(
         var externalRatingsCount: Int? = null
         var ratingSource: String? = null
         try {
+            // Cloud-first: if the cloud resolve already filled description/rating, skip the local chain.
+            tryCloudResolve(book)
+            val cloudState = _uiState.value
+            if (!cloudState.description.isNullOrBlank() && cloudState.description != book.description) {
+                repository.updateBookDescription(book.id, cloudState.description)
+            }
+            if (!cloudState.description.isNullOrBlank()) {
+                return
+            }
+
             val sources = preferencesManager.synopsisSources.first()
+
+            // Read-through: skip the network when a fresh metadata cache entry exists.
+            if (!book.isbn.isNullOrBlank()) {
+                val cached = repository.getCachedMetadata(book.isbn)
+                if (cached != null && !cached.description.isNullOrBlank()) {
+                    desc = cached.description
+                    externalRating = cached.averageRating?.toDouble()
+                    externalRatingsCount = cached.ratingsCount
+                    ratingSource = cached.source
+                    _uiState.value = _uiState.value.copy(
+                        description = desc,
+                        externalRating = externalRating,
+                        externalRatingsCount = externalRatingsCount,
+                        ratingSource = ratingSource
+                    )
+                    if (desc != book.description) repository.updateBookDescription(book.id, desc)
+                    return
+                }
+            }
 
             for (key in sources.enabledSources) {
                 when (key) {
@@ -143,17 +249,9 @@ class BookDetailViewModel @Inject constructor(
                             desc = candidate
                         }
                     }
-                    "todostuslibros" -> if (desc == null && !book.isbn.isNullOrBlank()) {
+                    "bne" -> if (desc == null && !book.isbn.isNullOrBlank()) {
                         val candidate = timed {
-                            portadaResolver.fetchDescriptionFromTodoTusLibros(book.isbn)
-                        }
-                        if (candidate != null && portadaResolver.isSpanishText(candidate)) {
-                            desc = candidate
-                        }
-                    }
-                    "casa_del_libro" -> if (desc == null) {
-                        val candidate = timed {
-                            portadaResolver.fetchDescriptionFromCasaDelLibro(book.title, book.author)
+                            portadaResolver.fetchDescriptionFromBne(book.isbn)
                         }
                         if (candidate != null && portadaResolver.isSpanishText(candidate)) {
                             desc = candidate
@@ -208,6 +306,17 @@ class BookDetailViewModel @Inject constructor(
             )
             if (desc != null && desc != book.description) {
                 repository.updateBookDescription(book.id, desc)
+            }
+
+            // Write-through: cache the resolved metadata keyed by ISBN.
+            if (!book.isbn.isNullOrBlank() && desc != null) {
+                repository.cacheMetadata(
+                    isbn = book.isbn,
+                    description = desc,
+                    averageRating = externalRating?.toFloat(),
+                    ratingsCount = externalRatingsCount,
+                    source = ratingSource ?: "mixed"
+                )
             }
         } finally {
             _uiState.value = _uiState.value.copy(isDescriptionLoading = false)

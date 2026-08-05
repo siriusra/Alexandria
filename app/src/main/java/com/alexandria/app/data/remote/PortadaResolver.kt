@@ -7,7 +7,6 @@ import com.alexandria.app.data.local.entity.CoverCacheEntity
 import com.alexandria.app.data.local.PreferencesManager
 import com.alexandria.app.data.model.CoverSource
 import com.alexandria.app.data.model.CoverSourceConfig
-import com.alexandria.app.data.remote.GoogleBooksApi
 import com.alexandria.app.data.remote.GoogleBookItem
 import com.alexandria.app.data.remote.VolumeInfo
 import com.alexandria.app.data.remote.ImageLinks
@@ -21,7 +20,6 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONObject
-import org.jsoup.Jsoup
 import java.util.concurrent.TimeUnit
 
 class PortadaResolver {
@@ -31,10 +29,6 @@ class PortadaResolver {
         .readTimeout(10, TimeUnit.SECONDS)
         .callTimeout(15, TimeUnit.SECONDS)
         .followRedirects(false)
-        .build()
-
-    private val webClient = client.newBuilder()
-        .followRedirects(true)
         .build()
 
     // ===== EXISTING METHODS (unchanged) =====
@@ -249,10 +243,8 @@ class PortadaResolver {
             val url = when (source) {
                 CoverSource.OPEN_LIBRARY_COVERS -> fetchOpenLibraryCover(cleanIsbn)
                 CoverSource.INTERNET_ARCHIVE -> fetchInternetArchiveCover(cleanIsbn)
-                CoverSource.BUSCALIBRE -> fetchBuscalibreCover(cleanIsbn)
-                CoverSource.GANDHI -> fetchGandhiCover(cleanIsbn)
-                CoverSource.EL_SOTANO -> fetchElSotanoCover(cleanIsbn)
-                CoverSource.LIBRERIA_NACIONAL -> fetchLibreriaNacionalCover(cleanIsbn)
+                CoverSource.BNE -> fetchBneCover(cleanIsbn)
+                CoverSource.GOOGLE_BOOKS -> fetchGoogleBooksCover(cleanIsbn, titulo, autor)
                 CoverSource.OPEN_LIBRARY_SEARCH -> fetchOpenLibrarySearchCover(titulo, autor)
             }
 
@@ -314,126 +306,69 @@ class PortadaResolver {
         }
     }
 
-    private suspend fun fetchBuscalibreCover(isbn: String): String? = withContext(Dispatchers.IO) {
+    private suspend fun fetchBneCover(isbn: String): String? = withContext(Dispatchers.IO) {
         try {
-            val searchUrl = "https://www.buscalibre.com.mx/busquedas?isbn=$isbn"
+            val query = """
+                PREFIX bne: <http://datos.bne.es/def/>
+                PREFIX schema: <http://schema.org/>
+                SELECT ?image WHERE {
+                    ?work bne:P3013 ?isbn .
+                    FILTER(?isbn = "$isbn")
+                    OPTIONAL { ?work schema:image ?image . }
+                } LIMIT 5
+            """.trimIndent()
+            val encoded = java.net.URLEncoder.encode(query, "UTF-8")
+            val url = "https://datos.bne.es/sparql?query=$encoded&format=json"
             val request = Request.Builder()
-                .url(searchUrl)
-                .header("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36")
+                .url(url)
+                .header("User-Agent", "Alexandria/1.0 (Android Book Tracker)")
+                .header("Accept", "application/sparql-results+json")
                 .build()
-            val response = webClient.newCall(request).execute()
-            if (!response.isSuccessful) return@withContext null
-            val html = response.body?.string() ?: return@withContext null
-            val doc = Jsoup.parse(html)
-
-            val productLink = doc.selectFirst("a[href*=/libro-], a[href*=/p/]")?.attr("abs:href")
-                ?: return@withContext null
-
-            val prodRequest = Request.Builder()
-                .url(productLink)
-                .header("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36")
-                .build()
-            val prodResponse = webClient.newCall(prodRequest).execute()
-            if (!prodResponse.isSuccessful) return@withContext null
-            val prodHtml = prodResponse.body?.string() ?: return@withContext null
-            val prodDoc = Jsoup.parse(prodHtml)
-
-            return@withContext extractCoverFromDoc(prodDoc)
+            val response = client.newCall(request).execute()
+            if (!response.isSuccessful) {
+                Log.w(TAG, "BNE cover query failed for ISBN $isbn: ${response.code}")
+                return@withContext null
+            }
+            val body = response.body?.string() ?: return@withContext null
+            val json = JSONObject(body)
+            val results = json.optJSONObject("results")?.optJSONArray("bindings") ?: return@withContext null
+            for (i in 0 until results.length()) {
+                val row = results.getJSONObject(i)
+                val image = row.optJSONObject("image")?.optString("value", "")?.takeIf { it.isNotBlank() }
+                if (image != null && image.startsWith("http")) return@withContext image
+            }
+            null
         } catch (e: Exception) {
-            Log.e(TAG, "Error fetching Buscalibre cover for ISBN $isbn", e)
+            Log.w(TAG, "BNE cover endpoint unverified for ISBN $isbn, falling back", e)
             null
         }
     }
 
-    private suspend fun fetchGandhiCover(isbn: String): String? = withContext(Dispatchers.IO) {
+    private suspend fun fetchGoogleBooksCover(isbn: String, title: String, author: String?): String? = withContext(Dispatchers.IO) {
         try {
-            val searchUrl = "https://www.gandhi.com.mx/busqueda?q=$isbn"
+            val query = isbn.ifEmpty {
+                java.net.URLEncoder.encode("$title ${author?.take(30) ?: ""}", "UTF-8")
+            }
+            val searchUrl = "https://www.googleapis.com/books/v1/volumes?q=isbn:$query&maxResults=1&langRestrict=es"
             val request = Request.Builder()
                 .url(searchUrl)
-                .header("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36")
+                .header("User-Agent", "Alexandria/1.0 (Android Book Tracker)")
                 .build()
-            val response = webClient.newCall(request).execute()
-            if (!response.isSuccessful) return@withContext null
-            val html = response.body?.string() ?: return@withContext null
-            val doc = Jsoup.parse(html)
-
-            val productLink = doc.selectFirst("a[href*=/producto/], a[href*=/libro/]")?.attr("abs:href")
-                ?: return@withContext null
-
-            val prodRequest = Request.Builder()
-                .url(productLink)
-                .header("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36")
-                .build()
-            val prodResponse = webClient.newCall(prodRequest).execute()
-            if (!prodResponse.isSuccessful) return@withContext null
-            val prodHtml = prodResponse.body?.string() ?: return@withContext null
-            val prodDoc = Jsoup.parse(prodHtml)
-
-            return@withContext extractCoverFromDoc(prodDoc)
+            val response = client.newCall(request).execute()
+            if (!response.isSuccessful) {
+                Log.w(TAG, "Google Books cover query failed for ISBN $isbn: ${response.code}")
+                return@withContext null
+            }
+            val body = response.body?.string() ?: return@withContext null
+            val json = JSONObject(body)
+            val items = json.optJSONArray("items") ?: return@withContext null
+            if (items.length() == 0) return@withContext null
+            val imageLinks = items.getJSONObject(0).optJSONObject("volumeInfo")?.optJSONObject("imageLinks") ?: return@withContext null
+            val imageUrl = imageLinks.optString("thumbnail", "")
+                ?: imageLinks.optString("smallThumbnail", "")
+            if (imageUrl.isNotBlank() && imageUrl.startsWith("http")) imageUrl else null
         } catch (e: Exception) {
-            Log.e(TAG, "Error fetching Gandhi cover for ISBN $isbn", e)
-            null
-        }
-    }
-
-    private suspend fun fetchElSotanoCover(isbn: String): String? = withContext(Dispatchers.IO) {
-        try {
-            val searchUrl = "https://www.elsotano.com/busqueda?q=$isbn"
-            val request = Request.Builder()
-                .url(searchUrl)
-                .header("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36")
-                .build()
-            val response = webClient.newCall(request).execute()
-            if (!response.isSuccessful) return@withContext null
-            val html = response.body?.string() ?: return@withContext null
-            val doc = Jsoup.parse(html)
-
-            val productLink = doc.selectFirst("a[href*=/libro-], a[href*=/p/]")?.attr("abs:href")
-                ?: return@withContext null
-
-            val prodRequest = Request.Builder()
-                .url(productLink)
-                .header("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36")
-                .build()
-            val prodResponse = webClient.newCall(prodRequest).execute()
-            if (!prodResponse.isSuccessful) return@withContext null
-            val prodHtml = prodResponse.body?.string() ?: return@withContext null
-            val prodDoc = Jsoup.parse(prodHtml)
-
-            return@withContext extractCoverFromDoc(prodDoc)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error fetching El Sótano cover for ISBN $isbn", e)
-            null
-        }
-    }
-
-    private suspend fun fetchLibreriaNacionalCover(isbn: String): String? = withContext(Dispatchers.IO) {
-        try {
-            val searchUrl = "https://www.librerianacional.com/buscar?q=$isbn"
-            val request = Request.Builder()
-                .url(searchUrl)
-                .header("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36")
-                .build()
-            val response = webClient.newCall(request).execute()
-            if (!response.isSuccessful) return@withContext null
-            val html = response.body?.string() ?: return@withContext null
-            val doc = Jsoup.parse(html)
-
-            val productLink = doc.selectFirst("a[href*=/producto/], a.product-link")?.attr("abs:href")
-                ?: return@withContext null
-
-            val prodRequest = Request.Builder()
-                .url(productLink)
-                .header("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36")
-                .build()
-            val prodResponse = webClient.newCall(prodRequest).execute()
-            if (!prodResponse.isSuccessful) return@withContext null
-            val prodHtml = prodResponse.body?.string() ?: return@withContext null
-            val prodDoc = Jsoup.parse(prodHtml)
-
-            return@withContext extractCoverFromDoc(prodDoc)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error fetching Librería Nacional cover for ISBN $isbn", e)
+            Log.e(TAG, "Error fetching Google Books cover for ISBN $isbn", e)
             null
         }
     }
@@ -464,34 +399,7 @@ class PortadaResolver {
         }
     }
 
-    private fun extractCoverFromDoc(doc: org.jsoup.nodes.Document): String? {
-        val selectors = listOf(
-            "meta[property=og:image]",
-            "meta[name=twitter:image]",
-            "[itemprop=image]",
-            ".product-image img",
-            ".book-cover img",
-            ".cover img",
-            "img.portada",
-            "img.cover",
-            ".image-container img",
-            "img[src*='cover']",
-            "img[src*='portada']"
-        )
-
-        for (selector in selectors) {
-            val el = doc.selectFirst(selector)
-            if (el != null) {
-                val url = if (el.tagName() == "meta") el.attr("content") else el.attr("abs:src")
-                if (url.isNotBlank() && !url.contains("placeholder") && !url.contains("no-image")) {
-                    return url
-                }
-            }
-        }
-        return null
-    }
-
-    // ===== EXISTING DESCRIPTION METHODS (unchanged) =====
+    // ===== DESCRIPTION METHODS =====
 
     suspend fun fetchDescriptionBySearch(title: String, author: String, lang: String? = null): GoogleBooksData? = withContext(Dispatchers.IO) {
         try {
@@ -686,66 +594,42 @@ class PortadaResolver {
         }
     }
 
-    suspend fun fetchDescriptionFromCasaDelLibro(title: String, author: String): String? = withContext(Dispatchers.IO) {
+    suspend fun fetchDescriptionFromBne(isbn: String): String? = withContext(Dispatchers.IO) {
         try {
-            if (title.isBlank()) return@withContext null
-            val query = java.net.URLEncoder.encode("$title $author", "UTF-8")
-            val searchUrl = "https://www.casadellibro.com/busqueda?q=$query"
-
-            val searchReq = Request.Builder()
-                .url(searchUrl)
-                .header("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36")
+            val normalizedIsbn = IsbnNormalizer.toIsbn13(isbn) ?: return@withContext null
+            val query = """
+                PREFIX bne: <http://datos.bne.es/def/>
+                PREFIX dct: <http://purl.org/dc/terms/>
+                SELECT ?description ?title WHERE {
+                    ?work bne:P3013 ?isbn .
+                    FILTER(?isbn = "$normalizedIsbn")
+                    OPTIONAL { ?work dct:title ?title . }
+                    OPTIONAL { ?work dct:description ?description . }
+                } LIMIT 5
+            """.trimIndent()
+            val encoded = java.net.URLEncoder.encode(query, "UTF-8")
+            val url = "https://datos.bne.es/sparql?query=$encoded&format=json"
+            val request = Request.Builder()
+                .url(url)
+                .header("User-Agent", "Alexandria/1.0 (Android Book Tracker)")
+                .header("Accept", "application/sparql-results+json")
                 .build()
-            val searchRes = webClient.newCall(searchReq).execute()
-            if (!searchRes.isSuccessful) return@withContext null
-            val html = searchRes.body?.string() ?: return@withContext null
-            val doc = Jsoup.parse(html)
-
-            val lowerTitle = title.lowercase().trim()
-            var bookUrl: String? = null
-            for (link in doc.select("a[href]")) {
-                val href = link.attr("href")
-                val text = link.text().lowercase().trim()
-                if (href.contains("/libro-") && (text == lowerTitle || text.contains(lowerTitle))) {
-                    bookUrl = if (href.startsWith("/")) "https://www.casadellibro.com$href" else href
-                    break
-                }
+            val response = client.newCall(request).execute()
+            if (!response.isSuccessful) {
+                Log.w(TAG, "BNE description query failed for ISBN $normalizedIsbn: ${response.code}")
+                return@withContext null
             }
-            if (bookUrl == null) {
-                val first = doc.selectFirst("a[href*=/libro-]")
-                if (first != null) {
-                    val href = first.attr("href")
-                    bookUrl = if (href.startsWith("/")) "https://www.casadellibro.com$href" else href
-                }
-            }
-            if (bookUrl == null) return@withContext null
-
-            val prodReq = Request.Builder()
-                .url(bookUrl)
-                .header("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36")
-                .build()
-            val prodRes = webClient.newCall(prodReq).execute()
-            if (!prodRes.isSuccessful) return@withContext null
-            val prodHtml = prodRes.body?.string() ?: return@withContext null
-            val prodDoc = Jsoup.parse(prodHtml)
-
-            for (selector in listOf(
-                "meta[property=og:description]",
-                "meta[name=description]",
-                "[itemprop=description]",
-                ".product-description",
-                ".descripcion",
-                ".sinopsis"
-            )) {
-                val el = prodDoc.selectFirst(selector)
-                if (el != null) {
-                    val text = if (el.tagName() == "meta") el.attr("content") else el.text()
-                    if (text.isNotBlank()) return@withContext text
-                }
+            val body = response.body?.string() ?: return@withContext null
+            val json = JSONObject(body)
+            val results = json.optJSONObject("results")?.optJSONArray("bindings") ?: return@withContext null
+            for (i in 0 until results.length()) {
+                val row = results.getJSONObject(i)
+                val desc = row.optJSONObject("description")?.optString("value", "")?.takeIf { it.isNotBlank() }
+                if (desc != null) return@withContext desc
             }
             null
         } catch (e: Exception) {
-            Log.e(TAG, "Error fetching Casa del Libro description for '$title'", e)
+            Log.w(TAG, "BNE description endpoint unverified for ISBN $isbn, falling back", e)
             null
         }
     }
@@ -791,57 +675,6 @@ class PortadaResolver {
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error fetching description for $olKey", e)
-            null
-        }
-    }
-
-    suspend fun fetchDescriptionFromTodoTusLibros(isbn: String): String? = withContext(Dispatchers.IO) {
-        try {
-            val cleanIsbn = IsbnNormalizer.toIsbn13(isbn) ?: return@withContext null
-            val url = "https://www.todostuslibros.com/busquedas?isbn=$cleanIsbn"
-            val redirectClient = client.newBuilder()
-                .connectTimeout(10, TimeUnit.SECONDS)
-                .readTimeout(10, TimeUnit.SECONDS)
-                .followRedirects(true)
-                .build()
-            val request = Request.Builder()
-                .url(url)
-                .header("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36")
-                .build()
-            val response = redirectClient.newCall(request).execute()
-            if (!response.isSuccessful) return@withContext null
-
-            val finalUrl = response.request.url.toString()
-            if (finalUrl.contains("/busquedas?")) return@withContext null
-
-            val html = response.body?.string() ?: return@withContext null
-            val doc = Jsoup.parse(html)
-
-            for (script in doc.select("script[type=application/ld+json]")) {
-                try {
-                    val raw = script.html().trim()
-                    if (raw.startsWith("[")) {
-                        val arr = JSONArray(raw)
-                        for (i in 0 until arr.length()) {
-                            val item = arr.getJSONObject(i)
-                            if (item.optString("@type") == "Book") {
-                                val desc = item.optString("description", null)
-                                if (!desc.isNullOrBlank()) return@withContext desc
-                            }
-                        }
-                    } else {
-                        val item = JSONObject(raw)
-                        if (item.optString("@type") == "Book") {
-                            val desc = item.optString("description", null)
-                            if (!desc.isNullOrBlank()) return@withContext desc
-                        }
-                    }
-                } catch (_: Exception) { }
-            }
-
-            null
-        } catch (e: Exception) {
-            Log.e(TAG, "Error fetching TodoTusLibros description for ISBN $isbn", e)
             null
         }
     }
@@ -903,7 +736,6 @@ class PortadaResolver {
         try {
             withTimeout(60_000) {
                 if (title.isBlank()) return@withTimeout emptyList()
-
                 val mainKey = findBookPageKey(title, author)
                 if (mainKey != null) {
                     val wikidata = fetchWikidataCharacters(mainKey)
@@ -912,27 +744,7 @@ class PortadaResolver {
                         return@withTimeout wikidata.take(12)
                     }
                 }
-
-                val candidates = mutableListOf<String>()
-
-                if (mainKey != null) {
-                    candidates.addAll(parsePersonajesSection(mainKey, allContent = false))
-                }
-
-                val anexoKey = findAnexoPageKey(title)
-                if (anexoKey != null) {
-                    candidates.addAll(parsePersonajesSection(anexoKey, allContent = true))
-                }
-
-                val cleaned = candidates
-                    .map { cleanCharacterName(it) }
-                    .filter { it.length in 2..60 }
-                    .filter { it.split(" ").size <= 6 }
-                    .filterNot { isStructuralJunk(it) }
-                    .distinct()
-
-                Log.d(TAG, "Characters (Wikipedia) for '$title': ${cleaned.take(12)}")
-                cleaned.take(12)
+                emptyList()
             }
         } catch (e: CancellationException) {
             throw e
@@ -1085,109 +897,6 @@ class PortadaResolver {
             if (bestKey != null) return bestKey
         }
         return null
-    }
-
-    private suspend fun findAnexoPageKey(title: String): String? {
-        val normTitle = title.normalizeForMatch()
-        val queries = listOf(
-            "Anexo:Personajes de $title",
-            "Anexo:Personajes de \"$title\"",
-            "$title personajes anexo"
-        )
-        for (query in queries) {
-            val pages = searchWikipediaPage(query) ?: continue
-            if (pages.length() == 0) continue
-            for (i in 0 until pages.length()) {
-                val page = pages.getJSONObject(i)
-                val pageTitle = page.optString("title", "")
-                val key = page.optString("key", null)
-                if (key == null) continue
-                val normAnnexo = pageTitle.normalizeForMatch()
-                if (normAnnexo.contains("personajes") && shareSignificantWord(normAnnexo, normTitle)) {
-                    return key
-                }
-            }
-        }
-        return null
-    }
-
-    private suspend fun parsePersonajesSection(pageKey: String, allContent: Boolean): List<String> {
-        try {
-            val encodedKey = java.net.URLEncoder.encode(pageKey, "UTF-8").replace("+", "%20")
-            val url = "https://es.wikipedia.org/wiki/$encodedKey"
-            val request = Request.Builder()
-                .url(url)
-                .header("User-Agent", "Alexandria/1.0 (Android Book Tracker)")
-                .build()
-            val response = withContext(Dispatchers.IO) { webClient.newCall(request).execute() }
-            if (!response.isSuccessful) return emptyList()
-            val html = response.body?.string() ?: return emptyList()
-            val doc = Jsoup.parse(html)
-            val names = LinkedHashSet<String>()
-
-            val content = doc.selectFirst("div.mw-parser-output")
-            if (content == null) return emptyList()
-
-            if (allContent) {
-                for (li in content.select("ul > li")) {
-                    addNameFromLi(li, names, maxLen = 40)
-                }
-                for (td in content.select("table.wikitable tr > td:first-child")) {
-                    addNameFromTd(td, names)
-                }
-            } else {
-                val heading = content.select("h2, h3, h4").firstOrNull {
-                    it.text().contains("Personajes", ignoreCase = true)
-                }
-                if (heading != null) {
-                    val level = heading.tagName().substring(1).toIntOrNull() ?: 2
-                    var el = heading.nextElementSibling()
-                    while (el != null) {
-                        val tag = el.tagName()
-                        if (tag.startsWith("h")) {
-                            val lvl = tag.substring(1).toIntOrNull() ?: level
-                            if (lvl <= level) break
-                        }
-                        if (tag == "ul") {
-                            for (li in el.select("> li")) {
-                                addNameFromLi(li, names)
-                            }
-                        }
-                        if (tag == "table" && el.classNames().contains("wikitable")) {
-                            for (td in el.select("td")) {
-                                addNameFromTd(td, names)
-                            }
-                        }
-                        el = el.nextElementSibling()
-                    }
-                }
-            }
-
-            return names.toList()
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Log.e(TAG, "Error parsing characters page $pageKey", e)
-            return emptyList()
-        }
-    }
-
-    private fun addNameFromLi(
-        li: org.jsoup.nodes.Element,
-        names: LinkedHashSet<String>,
-        maxLen: Int = 120
-    ) {
-        val bold = li.selectFirst("b")
-        val text = if (bold != null) bold.text() else li.text()
-        val clean = text.trim()
-        if (clean.isNotBlank() && clean.length <= maxLen) names.add(clean)
-    }
-
-    private fun addNameFromTd(td: org.jsoup.nodes.Element, names: LinkedHashSet<String>) {
-        val text = td.text().trim()
-        if (text.isNotBlank() && text.length in 2..60 && !text.contains(":")) {
-            names.add(text)
-        }
     }
 
     private fun cleanCharacterName(raw: String): String {

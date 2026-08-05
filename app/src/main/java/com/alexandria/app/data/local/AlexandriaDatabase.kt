@@ -5,16 +5,17 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
-import androidx.sqlite.db.SupportSQLiteDatabase
 import com.alexandria.app.data.local.BookCharacterDao
 import com.alexandria.app.data.local.CoverCacheDao
+import com.alexandria.app.data.local.MetadataCacheDao
 import com.alexandria.app.data.local.entity.BookCharacterEntity
 import com.alexandria.app.data.local.entity.BookEntity
 import com.alexandria.app.data.local.entity.CoverCacheEntity
+import com.alexandria.app.data.local.entity.MetadataCacheEntity
 
 @Database(
-    entities = [BookEntity::class, CoverCacheEntity::class, BookCharacterEntity::class],
-    version = 5,
+    entities = [BookEntity::class, CoverCacheEntity::class, BookCharacterEntity::class, MetadataCacheEntity::class],
+    version = 6,
     exportSchema = false
 )
 abstract class AlexandriaDatabase : RoomDatabase() {
@@ -22,6 +23,7 @@ abstract class AlexandriaDatabase : RoomDatabase() {
     abstract fun bookDao(): BookDao
     abstract fun coverCacheDao(): CoverCacheDao
     abstract fun bookCharacterDao(): BookCharacterDao
+    abstract fun metadataCacheDao(): MetadataCacheDao
 
     companion object {
         @Volatile
@@ -62,13 +64,32 @@ abstract class AlexandriaDatabase : RoomDatabase() {
             db.execSQL("ALTER TABLE books ADD COLUMN description TEXT")
         }
 
+        val MIGRATION_5_6 = Migration(5, 6) { db ->
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS metadata_cache (
+                    isbn TEXT NOT NULL PRIMARY KEY,
+                    description TEXT,
+                    averageRating REAL,
+                    ratingsCount INTEGER,
+                    source TEXT NOT NULL,
+                    timestamp INTEGER NOT NULL,
+                    ttlMs INTEGER NOT NULL
+                )
+            """.trimIndent())
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_metadata_cache_isbn ON metadata_cache(isbn)")
+        }
+
         fun getDatabase(context: Context): AlexandriaDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AlexandriaDatabase::class.java,
                     "alexandria_database"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build()
+                )
+                    .addMigrations(
+                        MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6
+                    )
+                    .build()
                 INSTANCE = instance
                 instance
             }

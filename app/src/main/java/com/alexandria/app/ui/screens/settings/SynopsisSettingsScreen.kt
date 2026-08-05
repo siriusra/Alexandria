@@ -20,8 +20,7 @@ data class SourceOption(
 
 private val sources = listOf(
     SourceOption("isbn", "ISBN (OpenLibrary)", "Búsqueda directa por ISBN"),
-    SourceOption("todostuslibros", "TodosTusLibros", "Sinopsis de todostuslibros.com"),
-    SourceOption("casa_del_libro", "Casa del Libro", "Sinopsis de casadellibro.com"),
+    SourceOption("bne", "BNE (España)", "Catálogo oficial de la Biblioteca Nacional de España (SPARQL)"),
     SourceOption("openlibrary", "OpenLibrary (español)", "OpenLibrary filtrado por idioma"),
     SourceOption("wikipedia", "Wikipedia", "Wikipedia en español"),
     SourceOption("google_books", "Google Books", "Google Books con restricción de idioma")
@@ -101,7 +100,7 @@ fun SynopsisSettingsScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                "El orden de consulta es: ISBN → TodosTusLibros → Casa del Libro → OpenLibrary → Wikipedia → Google Books.\n"
+                "El orden de consulta es: ISBN → BNE → OpenLibrary → Wikipedia → Google Books.\n"
                         + "Las fuentes desactivadas se saltan automáticamente.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant

@@ -18,35 +18,42 @@ import kotlinx.coroutines.flow.map
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
-data class SynopsisSourceConfig(
-    val enabledSources: List<String> = defaultOrder
-) {
-    fun isEnabled(key: String): Boolean = enabledSources.contains(key)
+    data class SynopsisSourceConfig(
+        val enabledSources: List<String> = defaultOrder
+    ) {
+        fun isEnabled(key: String): Boolean = enabledSources.contains(key)
 
-    fun toggleSource(key: String): SynopsisSourceConfig {
-        return if (enabledSources.contains(key)) {
-            copy(enabledSources = enabledSources.filter { it != key })
-        } else {
-            copy(enabledSources = enabledSources + key)
+        fun toggleSource(key: String): SynopsisSourceConfig {
+            return if (enabledSources.contains(key)) {
+                copy(enabledSources = enabledSources.filter { it != key })
+            } else {
+                copy(enabledSources = enabledSources + key)
+            }
+        }
+
+        fun moveSource(fromIndex: Int, toIndex: Int): SynopsisSourceConfig {
+            val newList = enabledSources.toMutableList()
+            val item = newList.removeAt(fromIndex)
+            newList.add(toIndex, item)
+            return copy(enabledSources = newList)
+        }
+
+        fun toJson(): String = Gson().toJson(this)
+
+        companion object {
+            val defaultOrder = listOf("isbn", "bne", "openlibrary", "wikipedia", "google_books")
+            private val knownKeys = defaultOrder.toSet()
+
+            fun fromJson(json: String): SynopsisSourceConfig =
+                try {
+                    val cfg = Gson().fromJson(json, SynopsisSourceConfig::class.java)
+                    val filtered = cfg.enabledSources.filter { it in knownKeys }
+                    if (filtered.isEmpty()) cfg.copy(enabledSources = defaultOrder) else cfg.copy(enabledSources = filtered)
+                } catch (e: Exception) {
+                    SynopsisSourceConfig()
+                }
         }
     }
-
-    fun moveSource(fromIndex: Int, toIndex: Int): SynopsisSourceConfig {
-        val newList = enabledSources.toMutableList()
-        val item = newList.removeAt(fromIndex)
-        newList.add(toIndex, item)
-        return copy(enabledSources = newList)
-    }
-
-    fun toJson(): String = Gson().toJson(this)
-
-    companion object {
-        val defaultOrder = listOf("isbn", "todostuslibros", "casa_del_libro", "openlibrary", "wikipedia", "google_books")
-
-        fun fromJson(json: String): SynopsisSourceConfig =
-            Gson().fromJson(json, SynopsisSourceConfig::class.java)
-    }
-}
 
 class PreferencesManager(private val context: Context) {
 
@@ -59,6 +66,8 @@ class PreferencesManager(private val context: Context) {
         val VISUAL_MODE = stringPreferencesKey("visual_mode")
         val FIRST_LAUNCH_COMPLETED = booleanPreferencesKey("first_launch_completed")
         val PUSH_NOTIFICATIONS_ENABLED = booleanPreferencesKey("push_notifications_enabled")
+        val COVER_DOWNLOAD_ENABLED = booleanPreferencesKey("cover_download_enabled")
+        val COVER_CACHE_TTL_DAYS = intPreferencesKey("cover_cache_ttl_days")
 
         fun getDefaultCoverConfig(): CoverSourceConfig = CoverSourceConfig()
     }
@@ -88,7 +97,7 @@ class PreferencesManager(private val context: Context) {
         val json = prefs[COVER_SOURCES_CONFIG]
         if (json != null && json.isNotBlank()) {
             try {
-                Gson().fromJson(json, CoverSourceConfig::class.java)
+                CoverSourceConfig.fromJson(json)
             } catch (e: Exception) {
                 CoverSourceConfig()
             }
@@ -118,9 +127,19 @@ class PreferencesManager(private val context: Context) {
         prefs[PUSH_NOTIFICATIONS_ENABLED] ?: true
     }
 
+    val coverDownloadEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[COVER_DOWNLOAD_ENABLED] ?: true
+    }
+
     suspend fun setPushNotificationsEnabled(enabled: Boolean) {
         context.dataStore.edit { prefs ->
             prefs[PUSH_NOTIFICATIONS_ENABLED] = enabled
+        }
+    }
+
+    suspend fun setCoverDownloadEnabled(enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[COVER_DOWNLOAD_ENABLED] = enabled
         }
     }
 

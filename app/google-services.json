@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "476827780707",
+    "project_id": "alexandria-d3397",
+    "storage_bucket": "alexandria-d3397.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:476827780707:android:e75e5774e56b9028f21a56",
+        "android_client_info": {
+          "package_name": "com.alexandria.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAYVwG1zewsskh9LymYMQnBgaaLTqWs3-4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

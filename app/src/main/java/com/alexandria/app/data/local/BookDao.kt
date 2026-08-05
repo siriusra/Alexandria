@@ -63,4 +63,7 @@ interface BookDao {
 
     @Query("UPDATE books SET description = :description WHERE id = :bookId")
     suspend fun updateDescription(bookId: Long, description: String?)
+
+    @Query("UPDATE books SET coverLocalPath = :localPath WHERE id = :bookId")
+    suspend fun updateCoverLocalPath(bookId: Long, localPath: String?)
 }

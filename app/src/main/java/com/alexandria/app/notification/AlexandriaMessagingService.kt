@@ -13,12 +13,13 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.alexandria.app.R
-import com.alexandria.app.ui.MainActivity
+import com.alexandria.app.MainActivity
 import com.alexandria.app.data.local.PreferencesManager
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import javax.inject.Inject
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
 @AndroidEntryPoint
@@ -38,10 +39,10 @@ class AlexandriaMessagingService : FirebaseMessagingService() {
         super.onMessageReceived(remoteMessage)
 
         val data = remoteMessage.data
-        if (data.isEmpty()) return
+        if (data.isEmpty() && remoteMessage.notification == null) return
 
-        val title = data["title"] ?: "Nuevo mensaje"
-        val body = data["body"] ?: ""
+        val title = remoteMessage.notification?.title ?: data["title"] ?: "Nuevo mensaje"
+        val body = remoteMessage.notification?.body ?: data["body"] ?: ""
         val clickAction = data["click_action"]
 
         Log.d(TAG, "FCM message received: $title - $body")

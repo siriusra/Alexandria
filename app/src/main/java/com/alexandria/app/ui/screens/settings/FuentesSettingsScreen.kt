@@ -120,8 +120,7 @@ fun FuentesSettingsScreen(
 
             val synopsisMeta = mapOf(
                 "isbn" to SourceOption("isbn", "ISBN (OpenLibrary)", "Búsqueda directa por ISBN"),
-                "todostuslibros" to SourceOption("todostuslibros", "TodosTusLibros", "Sinopsis de todostuslibros.com"),
-                "casa_del_libro" to SourceOption("casa_del_libro", "Casa del Libro", "Sinopsis de casadellibro.com"),
+                "bne" to SourceOption("bne", "BNE (España)", "Catálogo oficial de la Biblioteca Nacional de España (SPARQL)"),
                 "openlibrary" to SourceOption("openlibrary", "OpenLibrary (español)", "OpenLibrary filtrado por idioma"),
                 "wikipedia" to SourceOption("wikipedia", "Wikipedia", "Wikipedia en español"),
                 "google_books" to SourceOption("google_books", "Google Books", "Google Books con restricción de idioma")
@@ -144,7 +143,7 @@ fun FuentesSettingsScreen(
                 }
             }
 
-            val allSynopsisKeys = listOf("isbn", "todostuslibros", "casa_del_libro", "openlibrary", "wikipedia", "google_books")
+            val allSynopsisKeys = listOf("isbn", "bne", "openlibrary", "wikipedia", "google_books")
             val synopsisDisabled = allSynopsisKeys.filterNot { it in uiState.synopsisSources.enabledSources }
             if (synopsisDisabled.isNotEmpty()) {
                 item {

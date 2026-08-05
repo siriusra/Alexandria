@@ -12,3 +12,9 @@ local.properties
 keystore.properties
 /.agents
 /agents
+/functions/node_modules
+/functions/lib
+/.firebase
+firebase-debug.log
+firestore-debug.log
+*.log
