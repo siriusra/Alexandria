@@ -6,6 +6,7 @@ plugins {
     id("com.google.devtools.ksp")
     id("com.google.dagger.hilt.android")
     id("com.google.gms.google-services") version "4.4.2" apply false
+    id("com.google.firebase.crashlytics") version "2.9.9" apply false
 }
 
 val keystorePropertiesFile = rootProject.file("keystore.properties")
@@ -22,7 +23,7 @@ android {
         applicationId = "com.alexandria.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 64
+        versionCode = 65
         versionName = "1.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -149,3 +150,4 @@ dependencies {
 }
 
 apply(plugin = "com.google.gms.google-services")
+apply(plugin = "com.google.firebase.crashlytics")

@@ -76,7 +76,6 @@ abstract class AlexandriaDatabase : RoomDatabase() {
                     ttlMs INTEGER NOT NULL
                 )
             """.trimIndent())
-            db.execSQL("CREATE INDEX IF NOT EXISTS index_metadata_cache_isbn ON metadata_cache(isbn)")
         }
 
         fun getDatabase(context: Context): AlexandriaDatabase {
