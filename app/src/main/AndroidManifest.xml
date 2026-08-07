@@ -26,6 +26,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Alexandria"
         tools:targetApi="34">
+        <meta-data
+            android:name="debug.firebase.appcheck.token"
+            android:value="4dfe84ce-8f14-4694-b873-1c1267828db5" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

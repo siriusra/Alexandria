@@ -23,7 +23,7 @@ android {
         applicationId = "com.alexandria.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 65
+        versionCode = 66
         versionName = "1.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -132,8 +132,7 @@ dependencies {
     implementation("com.google.firebase:firebase-config-ktx")
     implementation("com.google.firebase:firebase-analytics-ktx")
     implementation("com.google.firebase:firebase-crashlytics-ktx")
-    implementation("com.google.firebase:firebase-appcheck-ktx")
-    implementation("com.google.firebase:firebase-appcheck-playintegrity")
+    debugImplementation("com.google.firebase:firebase-appcheck-ktx")
     debugImplementation("com.google.firebase:firebase-appcheck-debug")
 
     // Gson

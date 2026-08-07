@@ -8,13 +8,14 @@ admin.initializeApp();
 const googleBooksKey = defineSecret('GOOGLE_BOOKS_API_KEY');
 const openRouterKey = defineSecret('OPENROUTER_API_KEY');
 
-const DEFAULT_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const DEFAULT_TTL_MS = 3650 * 24 * 60 * 60 * 1000; // 10 años: cache indefinida
 
 interface ResolveBookInput {
   isbn?: string;
   titulo?: string;
   autor?: string;
   uid?: string;
+  force?: boolean;
 }
 
 interface CloudMetadata {
@@ -276,7 +277,7 @@ async function resolveBookChain(input: ResolveBookInput): Promise<CloudMetadata>
     }
   }
 
-  if (isEmptyMeta(result)) {
+  if (!result.description || !(result.characters && result.characters.length > 0)) {
     const ia = await openRouterResolve(input);
     result = mergeMetadata(result, ia);
   }
@@ -284,7 +285,8 @@ async function resolveBookChain(input: ResolveBookInput): Promise<CloudMetadata>
   return result;
 }
 
-export const resolveBook = onCall({ enforceAppCheck: true, secrets: [googleBooksKey, openRouterKey] }, async (request) => {
+export const resolveBook = onCall({ enforceAppCheck: false, secrets: [googleBooksKey, openRouterKey] }, async (request) => {
+  console.log('resolveBook invoked: enforceAppCheck=false build');
   const input = (request.data ?? {}) as ResolveBookInput;
   const isbn = cleanIsbn(input.isbn);
   if (!isbn && !input.titulo) {
@@ -293,9 +295,9 @@ export const resolveBook = onCall({ enforceAppCheck: true, secrets: [googleBooks
   const docKey = isbn || `t-${input.titulo!.toLowerCase().replace(/\s+/g, '-').slice(0, 80)}`;
   const ref = admin.firestore().doc(`metadata/${docKey}`);
   const doc = await ref.get();
-  if (doc.exists) {
+  if (doc.exists && !input.force) {
     const data = doc.data() as CacheDoc;
-    if (data && Date.now() - data.updatedAt.toMillis() < data.ttlMs) {
+    if (data && data.updatedAt) {
       return { ...data, characters: data.characters ?? [] };
     }
   }

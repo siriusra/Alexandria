@@ -39,7 +39,8 @@ data class DetailUiState(
     val coverUrl: String? = null,
     val characters: List<BookCharacter> = emptyList(),
     val isCharactersLoading: Boolean = false,
-    val characterSuggestions: List<String>? = null
+    val characterSuggestions: List<String>? = null,
+    val isCloudResolving: Boolean = false
 )
 
 @HiltViewModel
@@ -54,6 +55,9 @@ class BookDetailViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val bookId: Long = savedStateHandle.get<Long>("bookId") ?: 0L
+    init {
+        Log.d(TAG, "bookId from SavedStateHandle = $bookId")
+    }
 
     private val _uiState = MutableStateFlow(DetailUiState())
     val uiState: StateFlow<DetailUiState> = _uiState.asStateFlow()
@@ -77,6 +81,7 @@ class BookDetailViewModel @Inject constructor(
             val user = auth.currentUser ?: auth.signInAnonymously().await().user
             user?.uid?.takeIf { it.isNotBlank() }
         } catch (e: Exception) {
+            Log.w(TAG, "currentUid failed: ${e.message}")
             null
         }
     }
@@ -91,16 +96,27 @@ class BookDetailViewModel @Inject constructor(
         }
     }
 
-    private suspend fun tryCloudResolve(book: Book) {
-        if (cloudAttempted) return
-        val uid = currentUid() ?: return
+    private suspend fun tryCloudResolve(book: Book, force: Boolean = false) {
+        if (cloudAttempted && !force) return
+        val uid = currentUid()
+        if (uid == null) {
+            Log.w(TAG, "tryCloudResolve: no uid for '${book.title}'")
+            return
+        }
         subscribeToUserTopic(uid)
         cloudAttempted = true
+        Log.d(TAG, "tryCloudResolve calling resolveBook for '${book.title}'")
         val metadata = try {
-            withTimeout(15_000L) { cloudResolver.resolveBook(uid, book) }
+            withTimeout(15_000L) { cloudResolver.resolveBook(uid, book, force) }
         } catch (e: Exception) {
+            Log.w(TAG, "tryCloudResolve timeout/error for '${book.title}': ${e.message}")
             null
-        } ?: return
+        }
+        if (metadata == null) {
+            Log.w(TAG, "tryCloudResolve returned null for '${book.title}'")
+            return
+        }
+        Log.d(TAG, "tryCloudResolve got metadata for '${book.title}'")
         val current = _uiState.value
         var updated = current
 
@@ -144,6 +160,7 @@ class BookDetailViewModel @Inject constructor(
             var hasReceivedBook = false
             var timeoutJob: Job? = null
             repository.getBookById(bookId).collect { book ->
+                Log.d(TAG, "getBookById($bookId) -> ${book?.id} '${book?.title}'")
                 val current = _uiState.value
                 val effective = book ?: current.book
                 val gotBookNow = effective != null
@@ -177,6 +194,17 @@ class BookDetailViewModel @Inject constructor(
                     }
                 }
             }
+        }
+    }
+
+    fun resolveWithAI() {
+        val book = _uiState.value.book ?: return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isCloudResolving = true)
+            Log.d(TAG, "resolveWithAI start for '${book.title}'")
+            tryCloudResolve(book, force = true)
+            Log.d(TAG, "resolveWithAI done for '${book.title}'")
+            _uiState.value = _uiState.value.copy(isCloudResolving = false)
         }
     }
 

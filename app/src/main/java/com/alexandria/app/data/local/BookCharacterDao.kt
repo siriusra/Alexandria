@@ -17,6 +17,9 @@ interface BookCharacterDao {
     @Query("SELECT * FROM book_characters WHERE bookId = :bookId ORDER BY sortOrder ASC, id ASC")
     suspend fun getForBookOnce(bookId: Long): List<BookCharacterEntity>
 
+    @Query("SELECT * FROM book_characters ORDER BY bookId ASC, sortOrder ASC, id ASC")
+    suspend fun getAllOnce(): List<BookCharacterEntity>
+
     @Insert
     suspend fun insert(character: BookCharacterEntity): Long
 

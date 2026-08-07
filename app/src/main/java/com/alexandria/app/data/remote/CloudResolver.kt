@@ -32,13 +32,14 @@ class CloudResolver @Inject constructor(
 ) {
     private val timeoutMs = 15_000L
 
-    suspend fun resolveBook(uid: String, book: Book): CloudBookMetadata? = withContext(Dispatchers.IO) {
+    suspend fun resolveBook(uid: String, book: Book, force: Boolean = false): CloudBookMetadata? = withContext(Dispatchers.IO) {
         try {
             val payload = hashMapOf<String, Any?>(
                 "isbn" to book.isbn?.replace(Regex("[\\s-]"), ""),
                 "titulo" to book.title,
                 "autor" to book.author,
-                "uid" to uid
+                "uid" to uid,
+                "force" to force
             )
             val ref: com.google.firebase.functions.HttpsCallableReference =
                 functions.getHttpsCallable("resolveBook")

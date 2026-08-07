@@ -55,7 +55,9 @@ fun BookDetailScreen(
     var showCharacterAdd by remember { mutableStateOf(false) }
     var editingCharacter by remember { mutableStateOf<BookCharacter?>(null) }
 
-    uiState.book?.let { book ->
+    val currentBook = uiState.book
+    if (currentBook != null) {
+        val book = currentBook
         Scaffold(
             topBar = {
                 TopAppBar(
@@ -252,6 +254,27 @@ fun BookDetailScreen(
                                                 MaterialTheme.colorScheme.onSurface
                                         )
                                     }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Button(
+                                    onClick = { viewModel.resolveWithAI() },
+                                    enabled = !uiState.isCloudResolving
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.AutoAwesome,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        if (uiState.isCloudResolving) "Buscando…" else "Buscar con IA"
+                                    )
                                 }
                             }
                         }
@@ -699,7 +722,7 @@ fun BookDetailScreen(
                 onAdd = { pairs -> viewModel.addCharacters(pairs) }
             )
         }
-    } ?: run {
+    } else {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center

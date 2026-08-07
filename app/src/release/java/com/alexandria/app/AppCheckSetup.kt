@@ -1,10 +1,6 @@
 package com.alexandria.app
 
-import com.google.firebase.appcheck.FirebaseAppCheck
-import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
-
 fun setupAppCheck() {
-    FirebaseAppCheck.getInstance().installAppCheckProviderFactory(
-        PlayIntegrityAppCheckProviderFactory.getInstance()
-    )
+    // App Check deshabilitado en release: la Cloud Function resolveBook usa
+    // enforceAppCheck = false, por lo que no se debe enviar token de App Check.
 }

@@ -70,6 +70,31 @@ class CoverStore @Inject constructor(
         if (coversDir.exists()) coversDir.deleteRecursively()
     }
 
+    /** Lee los bytes de una portada local (para embeberla en un backup). */
+    fun readCoverBytes(localPath: String?): ByteArray? {
+        if (localPath.isNullOrBlank()) return null
+        val file = File(localPath)
+        return try {
+            if (file.exists() && file.length() > 0) file.readBytes() else null
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /** Escribe los bytes de una portada restaurada y devuelve la ruta absoluta. */
+    suspend fun restoreCoverBytes(isbn: String?, url: String?, bytes: ByteArray): String? =
+        withContext(Dispatchers.IO) {
+            try {
+                if (bytes.isEmpty()) return@withContext null
+                val file = File(coversDir, fileName(isbn, url ?: "restored"))
+                file.parentFile?.mkdirs()
+                file.writeBytes(bytes)
+                file.absolutePath
+            } catch (e: Exception) {
+                null
+            }
+        }
+
     private fun sha256(input: String): String = try {
         val md = MessageDigest.getInstance("SHA-256")
         val digest = md.digest(input.toByteArray(Charsets.UTF_8))

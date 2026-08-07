@@ -10,6 +10,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.alexandria.app.BuildConfig
 import com.alexandria.app.data.local.PreferencesManager
+import com.alexandria.app.data.model.BackupCharacter
+import com.alexandria.app.data.model.BackupData
 import com.alexandria.app.data.model.CoverSource
 import com.alexandria.app.data.model.CoverSourceConfig
 import com.alexandria.app.domain.model.Book
@@ -231,8 +233,7 @@ class SettingsViewModel @Inject constructor(
     fun exportJsonToDownloads() {
         viewModelScope.launch {
             try {
-                val books = repository.getAllBooks().first()
-                val json = Gson().toJson(books.map { it.copy(coverLocalPath = null) })
+                val json = buildBackupJson()
                 val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
                 val dir = android.os.Environment.getExternalStoragePublicDirectory(
                     android.os.Environment.DIRECTORY_DOWNLOADS
@@ -275,8 +276,7 @@ class SettingsViewModel @Inject constructor(
     fun exportJsonViaSAF(uri: Uri, context: Context) {
         viewModelScope.launch {
             try {
-                val books = repository.getAllBooks().first()
-                val json = Gson().toJson(books.map { it.copy(coverLocalPath = null) })
+                val json = buildBackupJson()
                 context.contentResolver.openOutputStream(uri)?.use { it.write(json.toByteArray()) }
                 _uiState.value = _uiState.value.copy(
                     exportMessage = "Exportado correctamente"
@@ -309,8 +309,7 @@ class SettingsViewModel @Inject constructor(
     fun shareJson(context: Context) {
         viewModelScope.launch {
             try {
-                val books = repository.getAllBooks().first()
-                val json = Gson().toJson(books.map { it.copy(coverLocalPath = null) })
+                val json = buildBackupJson()
                 val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
                 val exportDir = File(context.cacheDir, "exports")
                 exportDir.mkdirs()
@@ -350,6 +349,43 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    private suspend fun importBackupJson(json: String): Int {
+        val backup = try {
+            Gson().fromJson(json, BackupData::class.java)
+        } catch (e: Exception) {
+            null
+        }
+        if (backup != null && (backup.books.isNotEmpty() || backup.characters.isNotEmpty() || backup.covers.isNotEmpty())) {
+            val covers = backup.covers
+            var importedCount = 0
+            backup.books.forEach { book ->
+                val base64 = if (book.id > 0L) covers[book.id] else null
+                val coverBytes = base64?.let {
+                    try {
+                        android.util.Base64.decode(it, android.util.Base64.NO_WRAP)
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
+                val chars = backup.characters
+                    .filter { it.bookId == book.id }
+                    .map { it.toDomain() }
+                repository.restoreBook(book.withDefaults(), chars, coverBytes)
+                importedCount++
+            }
+            return importedCount
+        }
+        // Retrocompatibilidad: formato anterior (List<Book>)
+        val type = object : TypeToken<List<Book>>() {}.type
+        val books: List<Book> = Gson().fromJson(json, type)
+        var importedCount = 0
+        books.forEach { book ->
+            repository.addBook(book.withDefaults().copy(id = 0))
+            importedCount++
+        }
+        return importedCount
+    }
+
     fun importFromJson(uri: Uri, context: Context) {
         viewModelScope.launch {
             try {
@@ -360,14 +396,7 @@ class SettingsViewModel @Inject constructor(
                 val json = reader.readText()
                 reader.close()
 
-                val type = object : TypeToken<List<Book>>() {}.type
-                val books: List<Book> = Gson().fromJson(json, type)
-
-                var importedCount = 0
-                books.forEach { book ->
-                    repository.addBook(book.withDefaults().copy(id = 0))
-                    importedCount++
-                }
+                val importedCount = importBackupJson(json)
 
                 _uiState.value = _uiState.value.copy(
                     exportMessage = "Importados $importedCount libros"
@@ -437,14 +466,7 @@ class SettingsViewModel @Inject constructor(
                 val text = clip.getItemAt(0).text?.toString()
                     ?: throw Exception("No hay texto en el portapapeles")
 
-                val type = object : TypeToken<List<Book>>() {}.type
-                val books: List<Book> = Gson().fromJson(text, type)
-
-                var importedCount = 0
-                books.forEach { book ->
-                    repository.addBook(book.withDefaults().copy(id = 0))
-                    importedCount++
-                }
+                val importedCount = importBackupJson(text)
 
                 _uiState.value = _uiState.value.copy(
                     exportMessage = "Importados $importedCount libros desde portapapeles"
@@ -459,6 +481,27 @@ class SettingsViewModel @Inject constructor(
 
     fun clearMessage() {
         _uiState.value = _uiState.value.copy(exportMessage = null)
+    }
+
+    private suspend fun buildBackupJson(): String {
+        val books = repository.getAllBooksOnce()
+        val characters = repository.getAllCharactersOnce().map { BackupCharacter.fromDomain(it) }
+        val covers = buildMap {
+            books.forEach { book ->
+                if (book.id > 0L) {
+                    repository.readCoverBase64(book.coverLocalPath)?.let { bytes ->
+                        put(book.id, bytes)
+                    }
+                }
+            }
+        }
+        val data = BackupData(
+            version = 1,
+            books = books,
+            characters = characters,
+            covers = covers
+        )
+        return Gson().toJson(data)
     }
 
     private fun buildCsv(books: List<Book>): String {

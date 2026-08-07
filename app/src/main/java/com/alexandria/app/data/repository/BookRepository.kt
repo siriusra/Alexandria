@@ -125,7 +125,6 @@ class BookRepository @Inject constructor(
     suspend fun updateCharacter(character: BookCharacter) {
         bookCharacterDao.update(character.toEntity())
     }
-
     suspend fun updateCharacterFavorite(id: Long, isFavorite: Boolean) {
         bookCharacterDao.updateFavorite(id, isFavorite)
     }
@@ -137,6 +136,46 @@ class BookRepository @Inject constructor(
     suspend fun deleteCharacterById(id: Long) {
         bookCharacterDao.deleteById(id)
     }
+
+    // ===== BACKUP =====
+
+    suspend fun getAllBooksOnce(): List<Book> {
+        return bookDao.getAllBooks().first().map { it.toDomain() }
+    }
+
+    suspend fun getAllCharactersOnce(): List<BookCharacter> {
+        return bookCharacterDao.getAllOnce().map { it.toDomain() }
+    }
+
+    suspend fun readCoverBase64(localPath: String?): String? {
+        return coverStore.readCoverBytes(localPath)?.let { bytes ->
+            android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+        }
+    }
+
+    /** Restaura un libro (genera ID nuevo), sus personajes y la portada embebida. */
+    suspend fun restoreBook(
+        book: Book,
+        characters: List<BookCharacter>,
+        coverBytes: ByteArray?
+    ): Long {
+        val newId = bookDao.insertBook(
+            book.copy(id = 0, coverLocalPath = null).toEntity()
+        )
+        if (coverBytes != null) {
+            val localPath = coverStore.restoreCoverBytes(book.isbn, book.coverUrl, coverBytes)
+            if (localPath != null) {
+                bookDao.updateCoverLocalPath(newId, localPath)
+            }
+        }
+        if (characters.isNotEmpty()) {
+            bookCharacterDao.insertAll(
+                characters.map { it.copy(id = 0, bookId = newId).toEntity() }
+            )
+        }
+        return newId
+    }
+
 
     suspend fun searchCovers(query: String): List<GoogleBookItem> {
         return try {
